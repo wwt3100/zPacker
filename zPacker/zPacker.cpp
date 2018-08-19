@@ -69,6 +69,10 @@ BOOL CzPackerApp::InitInstance()
 		SN.Read(snstr, SNFileSize);
 		VMProtectSetSerialNumber(snstr);
 	}
+	else
+	{
+		AfxMessageBox(_T("授权文件打开失败!"), 0, 0);
+	}
 	VMProtectSerialNumberData VMPSN = { 0 };
 	VMProtectGetSerialNumberData(&VMPSN, sizeof(VMProtectSerialNumberData));
 	if (VMPSN.nState != 0)
