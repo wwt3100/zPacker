@@ -41,14 +41,22 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 }
 BOOL CAboutDlg::OnInitDialog()
 {
+	char HWID[512];
+	wchar_t wstr[512];
+	VMProtectSerialNumberData VMPSN = {0};
 	CDialogEx::OnInitDialog();
-	SetDlgItemText(IDC_REG_INFO, L"≤‚ ‘");
+	//VMProtectGetCurrentHWID(HWID, 512);
+	//MultiByteToWideChar(CP_ACP, 0, HWID, -1, wstr, 512);
+	//SetDlgItemText(IDC_REG_INFO, wstr);
+	VMProtectGetSerialNumberData(&VMPSN,sizeof(VMProtectSerialNumberData));
+	CString RegInfo = VMPSN.wUserName;
+	RegInfo = L"Registered to " + RegInfo;
+	SetDlgItemText(IDC_REG_INFO, RegInfo);
 	return TRUE;
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
-
 
 // CzPackerDlg ∂‘ª∞øÚ
 

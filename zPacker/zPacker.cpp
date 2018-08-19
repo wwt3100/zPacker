@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "zPacker.h"
+#include "CRegDlg.h"
 #include "zPackerDlg.h"
 
 #ifdef _DEBUG
@@ -58,14 +59,35 @@ BOOL CzPackerApp::InitInstance()
 	// 激活“Windows Native”视觉管理器，以便在 MFC 控件中启用主题
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 
-	// 标准初始化
-	// 如果未使用这些功能并希望减小
-	// 最终可执行文件的大小，则应移除下列
-	// 不需要的特定初始化例程
-	// 更改用于存储设置的注册表项
-	// TODO:  应适当修改该字符串，
-	// 例如修改为公司或组织名
-	//SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
+	VMProtectBegin("Startup");
+#ifndef _DEBUG
+	CFile SN;
+	if (SN.Open(_T("Reg.key"), CFile::modeRead, 0))
+	{
+		DWORD SNFileSize = SN.GetLength();
+		char *snstr = new char[SNFileSize];
+		SN.Read(snstr, SNFileSize);
+		VMProtectSetSerialNumber(snstr);
+	}
+	VMProtectSerialNumberData VMPSN = { 0 };
+	VMProtectGetSerialNumberData(&VMPSN, sizeof(VMProtectSerialNumberData));
+	if (VMPSN.nState != 0)
+	{
+		//AfxMessageBox(L"授权无效或已过期，请重新输入。", 0, 0);
+		CRegDlg dlg;
+		INT_PTR nResponse = dlg.DoModal();
+		if (nResponse == IDOK)
+		{
+
+			AfxMessageBox(_T("程序即将关闭，请重启查看授权是否有效。"), 0, 0);
+			return FALSE;
+		}
+		else if (nResponse == IDCANCEL)
+		{
+			return FALSE;
+		}
+	}
+#endif
 
 	CzPackerDlg dlg;
 	m_pMainWnd = &dlg;
@@ -85,7 +107,7 @@ BOOL CzPackerApp::InitInstance()
 		TRACE(traceAppMsg, 0, "警告: 对话框创建失败，应用程序将意外终止。\n");
 		TRACE(traceAppMsg, 0, "警告: 如果您在对话框上使用 MFC 控件，则无法 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS。\n");
 	}
-
+	VMProtectEnd();
 	// 删除上面创建的 shell 管理器。
 	if (pShellManager != NULL)
 	{

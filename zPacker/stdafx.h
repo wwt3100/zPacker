@@ -36,6 +36,7 @@
 
 //#include "lib_qlz/quicklz.h"
 #include "VMProtectSDK.h"
+#include <afxcontrolbars.h>
 
 
 
