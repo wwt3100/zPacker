@@ -62,20 +62,30 @@ BOOL CzPackerApp::InitInstance()
 	VMProtectBegin("Startup");
 #ifndef _DEBUG
 	CFile SN;
+	int vmpret=-1;
+	if(VMProtectIsValidImageCRC()==false)
+	{
+		AfxMessageBox(_T("文件被破坏,请重新索取程序文件"), 0, 0);
+		return FALSE;
+	}
 	if (SN.Open(_T("Reg.key"), CFile::modeRead, 0))
 	{
 		DWORD SNFileSize = SN.GetLength();
-		char *snstr = new char[SNFileSize];
+		char *snstr = new char[SNFileSize+1];
+		memset(snstr, 0, SNFileSize + 1);
 		SN.Read(snstr, SNFileSize);
-		VMProtectSetSerialNumber(snstr);
+		vmpret = VMProtectSetSerialNumber(snstr);
+		delete snstr;
+		SN.Close();
+		//CString str;		//调试问题原因
+		//str.Format(_T("%d,%d"), vmpret, SNFileSize);
+		//AfxMessageBox(str, 0, 0);
 	}
 	else
 	{
-		AfxMessageBox(_T("授权文件打开失败!"), 0, 0);
+		AfxMessageBox(_T("授权文件打开失败"), 0, 0);
 	}
-	VMProtectSerialNumberData VMPSN = { 0 };
-	VMProtectGetSerialNumberData(&VMPSN, sizeof(VMProtectSerialNumberData));
-	if (VMPSN.nState != 0)
+	if (vmpret != 0)
 	{
 		//AfxMessageBox(L"授权无效或已过期，请重新输入。", 0, 0);
 		CRegDlg dlg;

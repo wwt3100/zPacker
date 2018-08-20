@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2047
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zPacker", "zPacker\zPacker.vcxproj", "{261AA345-8249-4ACF-9850-743C5C28CA57}"
+	ProjectSection(ProjectDependencies) = postProject
+		{31BB7E1B-B9BB-4478-A868-C6FA011F83FA} = {31BB7E1B-B9BB-4478-A868-C6FA011F83FA}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zPacklib", "zPacklib\zPacklib.vcxproj", "{31BB7E1B-B9BB-4478-A868-C6FA011F83FA}"
 EndProject

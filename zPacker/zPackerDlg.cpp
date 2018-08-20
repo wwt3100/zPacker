@@ -41,16 +41,20 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 }
 BOOL CAboutDlg::OnInitDialog()
 {
-	char HWID[512];
-	wchar_t wstr[512];
+	//char HWID[512];
+	//wchar_t wstr[512];
 	VMProtectSerialNumberData VMPSN = {0};
 	CDialogEx::OnInitDialog();
 	//VMProtectGetCurrentHWID(HWID, 512);
 	//MultiByteToWideChar(CP_ACP, 0, HWID, -1, wstr, 512);
 	//SetDlgItemText(IDC_REG_INFO, wstr);
 	VMProtectGetSerialNumberData(&VMPSN,sizeof(VMProtectSerialNumberData));
+#ifdef _DEBUG
+	CString RegInfo = _T("Peninsula");
+#else
 	CString RegInfo = VMPSN.wUserName;
-	RegInfo = L"Registered to " + RegInfo;
+#endif
+	RegInfo = _T("Registered to ") + RegInfo;
 	SetDlgItemText(IDC_REG_INFO, RegInfo);
 	return TRUE;
 }
@@ -178,5 +182,26 @@ void CzPackerDlg::OnBnClickedMenuAbout()
 
 void CzPackerDlg::OnBnClickedBtnOpenFile()
 {
-	// TODO:  在此添加控件通知处理程序代码
+	CString Filename;
+	CFileDialog openDlg(TRUE, _T("All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("All File(*.*)|*.*||"), this);
+	INT_PTR result = openDlg.DoModal();
+	if (result == IDOK)
+	{
+		Filename = openDlg.GetPathName();
+		SetDlgItemText(IDC_EDIT_INPUT_FILE, Filename.GetString());
+		CFile testFile;
+		testFile.Open(Filename.GetString(), CFile::modeRead, 0);
+		BYTE *f_buf = new BYTE[(DWORD)testFile.GetLength()];
+		BYTE *f_buf2 = new BYTE[(DWORD)testFile.GetLength()];
+		testFile.Read(f_buf, testFile.GetLength());
+
+		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, testFile.GetLength());
+
+		size_t csize = zPack_GetSize_compressed((LPCSTR)f_buf2);
+		size_t dsize = zPcak_GetSize_decompressed((LPCSTR)f_buf2);
+
+		CString str;
+		str.Format(_T("%d,%d,%d"), rdsize, csize, dsize);
+		AfxMessageBox(str, 0, 0);
+	}
 }

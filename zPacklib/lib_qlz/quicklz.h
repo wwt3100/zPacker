@@ -42,7 +42,6 @@
 
 // Using size_t, memset() and memcpy()
 #include <string.h>
-#include <Windows.h>
 // Verify compression level
 #if QLZ_COMPRESSION_LEVEL != 1 && QLZ_COMPRESSION_LEVEL != 2 && QLZ_COMPRESSION_LEVEL != 3
 #error QLZ_COMPRESSION_LEVEL must be 1, 2 or 3

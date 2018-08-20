@@ -39,6 +39,12 @@
 #include <afxcontrolbars.h>
 
 
+#include "../zPacklib/zPacklib.h"
+#ifdef _DEBUG
+#pragma comment(lib, "../Debug/zPacklib.lib")
+#else
+#pragma comment(lib, "../Release/zPacklib.lib")
+#endif
 
 
 
