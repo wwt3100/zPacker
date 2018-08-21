@@ -43,15 +43,14 @@ BOOL CAboutDlg::OnInitDialog()
 {
 	//char HWID[512];
 	//wchar_t wstr[512];
-	VMProtectSerialNumberData VMPSN = {0};
 	CDialogEx::OnInitDialog();
 	//VMProtectGetCurrentHWID(HWID, 512);
 	//MultiByteToWideChar(CP_ACP, 0, HWID, -1, wstr, 512);
-	//SetDlgItemText(IDC_REG_INFO, wstr);
-	VMProtectGetSerialNumberData(&VMPSN,sizeof(VMProtectSerialNumberData));
 #ifdef _DEBUG
 	CString RegInfo = _T("Peninsula");
 #else
+	VMProtectSerialNumberData VMPSN = {0};
+	VMProtectGetSerialNumberData(&VMPSN,sizeof(VMProtectSerialNumberData));
 	CString RegInfo = VMPSN.wUserName;
 #endif
 	RegInfo = _T("Registered to ") + RegInfo;
@@ -75,14 +74,16 @@ CzPackerDlg::CzPackerDlg(CWnd* pParent /*=NULL*/)
 void CzPackerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_FILE_LIST, m_FileList);
 }
 
 BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_BN_CLICKED(IDC_BTN_OPEN_FILE, &CzPackerDlg::OnBnClickedBtnOpenFile)
-	ON_BN_CLICKED(ID_ABOUT, &CzPackerDlg::OnBnClickedMenuAbout)
+	//ON_BN_CLICKED(IDC_BTN_OPEN_FILE, &CzPackerDlg::OnBnClickedBtnOpenFile)
+	ON_BN_CLICKED(ID_HELP_ABOUT, &CzPackerDlg::OnBnClickedMenuAbout)
+	ON_NOTIFY(NM_RCLICK, IDC_FILE_LIST, &CzPackerDlg::OnNMRClickFileList)
 END_MESSAGE_MAP()
 
 
@@ -121,6 +122,15 @@ BOOL CzPackerDlg::OnInitDialog()
 	CMenu m_Menu;
 	m_Menu.LoadMenu(IDR_MENU1);
 	SetMenu(&m_Menu);
+
+	m_FileList.InsertColumn(0, _T("课程名称"), LVCFMT_CENTER, 100);
+	m_FileList.InsertColumn(1, _T("是否主科"), LVCFMT_CENTER, 100);
+	m_FileList.InsertColumn(2, _T("周课时"), LVCFMT_CENTER, 100);
+	m_FileList.SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_FULLROWSELECT);
+	m_FileList.InsertItem(0, L"row1");
+	m_FileList.SetItemText(0, 1,L"123");
+	m_FileList.InsertItem(0, L"row2");
+	m_FileList.SetItemText(0, 1, L"321");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -180,28 +190,70 @@ void CzPackerDlg::OnBnClickedMenuAbout()
 	INT_PTR nResponse = dlg.DoModal();
 }
 
-void CzPackerDlg::OnBnClickedBtnOpenFile()
+//void CzPackerDlg::OnBnClickedBtnOpenFile()
+//{
+//	CString Filename;
+//	CFileDialog openDlg(TRUE, _T("All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("All File(*.*)|*.*||"), this);
+//	INT_PTR result = openDlg.DoModal();
+//	if (result == IDOK)
+//	{
+//		Filename = openDlg.GetPathName();
+//		SetDlgItemText(IDC_EDIT_INPUT_FILE, Filename.GetString());
+//		CFile testFile;
+//		testFile.Open(Filename.GetString(), CFile::modeRead, 0);
+//		BYTE *f_buf = new BYTE[(DWORD)testFile.GetLength()];
+//		BYTE *f_buf2 = new BYTE[(DWORD)testFile.GetLength()];
+//		testFile.Read(f_buf, testFile.GetLength());
+//
+//		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, testFile.GetLength());
+//
+//		size_t csize = zPack_GetSize_compressed((LPCSTR)f_buf2);
+//		size_t dsize = zPcak_GetSize_decompressed((LPCSTR)f_buf2);
+//
+//		CString str;
+//		str.Format(_T("%d,%d,%d"), rdsize, csize, dsize);
+//		AfxMessageBox(str, 0, 0);
+//	}
+//}
+
+#define WM_RMENU_CMD_TEST_1  WM_USER + 0x010
+#define WM_RMENU_CMD_TEST_2  WM_USER + 0x011
+#define WM_RMENU_CMD_TEST_3  WM_USER + 0x012
+
+//void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)
+//{
+//	// TODO:  在此添加消息处理程序代码和/或调用默认值
+//	CMenu menu;
+//	menu.CreatePopupMenu();
+//	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 1");
+//	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 2");
+//	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 3");
+//
+//	POINT tpoint;
+//	tpoint.x = point.x;
+//	tpoint.y = point.y;
+//	ClientToScreen(&tpoint);
+//	menu.TrackPopupMenu(TPM_LEFTALIGN, tpoint.x, tpoint.y, this);
+//
+//	CDialogEx::OnRButtonUp(nFlags, point);
+//}
+
+
+
+
+void CzPackerDlg::OnNMRClickFileList(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	CString Filename;
-	CFileDialog openDlg(TRUE, _T("All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("All File(*.*)|*.*||"), this);
-	INT_PTR result = openDlg.DoModal();
-	if (result == IDOK)
-	{
-		Filename = openDlg.GetPathName();
-		SetDlgItemText(IDC_EDIT_INPUT_FILE, Filename.GetString());
-		CFile testFile;
-		testFile.Open(Filename.GetString(), CFile::modeRead, 0);
-		BYTE *f_buf = new BYTE[(DWORD)testFile.GetLength()];
-		BYTE *f_buf2 = new BYTE[(DWORD)testFile.GetLength()];
-		testFile.Read(f_buf, testFile.GetLength());
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	POINT pt;
+	GetCursorPos(&pt);
+	CMenu menu;
 
-		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, testFile.GetLength());
+	menu.CreatePopupMenu();
+	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 1");
+	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 2");
+	menu.AppendMenu(MF_STRING, WM_RMENU_CMD_TEST_1, L"Test 3");
 
-		size_t csize = zPack_GetSize_compressed((LPCSTR)f_buf2);
-		size_t dsize = zPcak_GetSize_decompressed((LPCSTR)f_buf2);
+	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 
-		CString str;
-		str.Format(_T("%d,%d,%d"), rdsize, csize, dsize);
-		AfxMessageBox(str, 0, 0);
-	}
+	*pResult = 0;
 }

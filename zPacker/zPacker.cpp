@@ -58,9 +58,8 @@ BOOL CzPackerApp::InitInstance()
 
 	// 激活“Windows Native”视觉管理器，以便在 MFC 控件中启用主题
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
-
-	VMProtectBegin("Startup");
 #ifndef _DEBUG
+	VMProtectBegin("Startup");
 	CFile SN;
 	int vmpret=-1;
 	if(VMProtectIsValidImageCRC()==false)
@@ -102,7 +101,6 @@ BOOL CzPackerApp::InitInstance()
 		}
 	}
 #endif
-
 	CzPackerDlg dlg;
 	m_pMainWnd = &dlg;
 	INT_PTR nResponse = dlg.DoModal();
@@ -121,7 +119,9 @@ BOOL CzPackerApp::InitInstance()
 		TRACE(traceAppMsg, 0, "警告: 对话框创建失败，应用程序将意外终止。\n");
 		TRACE(traceAppMsg, 0, "警告: 如果您在对话框上使用 MFC 控件，则无法 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS。\n");
 	}
+#ifndef _DEBUG
 	VMProtectEnd();
+#endif
 	// 删除上面创建的 shell 管理器。
 	if (pShellManager != NULL)
 	{

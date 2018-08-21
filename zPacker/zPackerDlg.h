@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "afxcmn.h"
 
 
 // CzPackerDlg ¶Ô»°¿ò
@@ -30,6 +31,11 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnBnClickedBtnOpenFile();
+	/*afx_msg void OnBnClickedBtnOpenFile();*/
 	afx_msg void OnBnClickedMenuAbout();
+
+	CListCtrl m_FileList;
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnNMRClickFileList(NMHDR *pNMHDR, LRESULT *pResult);
 };
