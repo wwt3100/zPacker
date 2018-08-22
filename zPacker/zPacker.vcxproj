@@ -58,6 +58,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>true</EnableUAC>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include "afxmaskededit.h"
+#include "afxwin.h"
 
 
 // CzPackerDlg ¶Ô»°¿ò
@@ -32,4 +34,12 @@ protected:
 public:
 	afx_msg void OnBnClickedBtnOpenFile();
 	afx_msg void OnBnClickedMenuAbout();
+	afx_msg void OnDropFiles(HDROP hDropInfo);
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnBnClickedBtnCompress();
+	afx_msg void OnEnSetfocusEditVersion1();
+	afx_msg void OnFileExit();
+	BOOL m_Lock;
+	CButton *m_GroupBox;
+	CEdit m_HardID;
 };

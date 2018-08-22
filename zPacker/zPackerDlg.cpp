@@ -68,6 +68,7 @@ END_MESSAGE_MAP()
 
 CzPackerDlg::CzPackerDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CzPackerDlg::IDD, pParent)
+	, m_Lock(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -75,6 +76,8 @@ CzPackerDlg::CzPackerDlg(CWnd* pParent /*=NULL*/)
 void CzPackerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Check(pDX, IDC_SEL_LOCK, m_Lock);
+	DDX_Control(pDX, IDC_HARD_ID, m_HardID);
 }
 
 BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
@@ -83,6 +86,10 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_OPEN_FILE, &CzPackerDlg::OnBnClickedBtnOpenFile)
 	ON_BN_CLICKED(ID_ABOUT, &CzPackerDlg::OnBnClickedMenuAbout)
+	ON_WM_DROPFILES()
+	ON_WM_RBUTTONUP()
+	ON_BN_CLICKED(IDC_BTN_COMPRESS, &CzPackerDlg::OnBnClickedBtnCompress)
+	ON_COMMAND(ID_FILE_EXIT, &CzPackerDlg::OnFileExit)
 END_MESSAGE_MAP()
 
 
@@ -121,6 +128,25 @@ BOOL CzPackerDlg::OnInitDialog()
 	CMenu m_Menu;
 	m_Menu.LoadMenu(IDR_MENU1);
 	SetMenu(&m_Menu);
+
+	CFont *cf = m_HardID.GetFont();
+	LOGFONT lf;
+	cf->GetLogFont(&lf);
+	CWinApp* pApp = AfxGetApp();
+	UINT n=0;
+	BYTE PackSel[10] = {0};
+	if (pApp->GetProfileBinary(_T("Config"), _T("PackSel"), (LPBYTE*)PackSel, &n) == 0)
+	{
+		PackSel[0] = 0x80;
+		pApp->WriteProfileBinary(_T("Config"), _T("PackSel"), PackSel, 1);
+	}
+	HFONT  hFont = CreateFont(15, 0, 0,0,FW_NORMAL,FALSE,FALSE,0,ANSI_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
+		DEFAULT_QUALITY,DEFAULT_PITCH | FF_SWISS,_T("MS Shell Dlg 2"));//MS Shell Dlg		//Consolas
+	m_GroupBox = new CButton;
+	m_GroupBox->Create(_T("HMI"), BS_GROUPBOX | WS_VISIBLE
+		, CRect(10, 25, 480, 100), this, 8888);
+	//m_GroupBox->SetFont(cf);
+	m_GroupBox->SendMessage(WM_SETFONT, (WPARAM)hFont, TRUE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -180,6 +206,11 @@ void CzPackerDlg::OnBnClickedMenuAbout()
 	INT_PTR nResponse = dlg.DoModal();
 }
 
+void CzPackerDlg::OnFileExit()
+{
+	CDialog::OnCancel();
+}
+
 void CzPackerDlg::OnBnClickedBtnOpenFile()
 {
 	CString Filename;
@@ -205,3 +236,41 @@ void CzPackerDlg::OnBnClickedBtnOpenFile()
 		AfxMessageBox(str, 0, 0);
 	}
 }
+
+
+void CzPackerDlg::OnDropFiles(HDROP hDropInfo)
+{
+	// TODO:  在此添加消息处理程序代码和/或调用默认值
+
+	CDialogEx::OnDropFiles(hDropInfo);
+}
+
+
+void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
+{
+	POINT pt;
+	GetCursorPos(&pt);
+
+	CMenu popMenu;
+	popMenu.CreatePopupMenu();
+	popMenu.AppendMenu(MF_STRING | MF_DISABLED, 0, _T("Pack"));
+	popMenu.AppendMenu(MF_SEPARATOR);
+	popMenu.AppendMenu(MF_STRING, ID_PACK_HMI, _T("HMI"));
+	popMenu.AppendMenu(MF_STRING, ID_PACK_MAINBOARD, _T("MainBoard"));
+	popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_HANDLE, _T("Handle"));
+	popMenu.AppendMenu(MF_STRING, ID_PACK_LICENSE, _T("License"));
+	popMenu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
+
+	CDialogEx::OnRButtonUp(nFlags, point);
+}
+
+
+void CzPackerDlg::OnBnClickedBtnCompress()
+{
+	// TODO:  在此添加控件通知处理程序代码
+}
+
+
+
+
+
