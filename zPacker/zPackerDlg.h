@@ -4,11 +4,18 @@
 
 #pragma once
 #include "afxcmn.h"
-
+#include "afxwin.h"
 
 // CzPackerDlg 对话框
 class CzPackerDlg : public CDialogEx
 {
+	enum ListCmdID
+	{
+		ID_T_EDIT = WM_USER + 10,
+		ID_MENU_POP_ADD ,
+		ID_MENU_POP_INSERT,
+		ID_MENU_POP_DEL,
+	};
 // 构造
 public:
 	CzPackerDlg(CWnd* pParent = NULL);	// 标准构造函数
@@ -38,4 +45,9 @@ public:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnNMRClickFileList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnMenuPopCmd(UINT ID);
+	afx_msg void OnNMClickFileList(NMHDR *pNMHDR, LRESULT *pResult);
+	CEdit *m_edit;
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnNMDblclkFileList(NMHDR *pNMHDR, LRESULT *pResult);
 };
