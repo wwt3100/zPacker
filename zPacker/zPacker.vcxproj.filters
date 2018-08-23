@@ -39,6 +39,9 @@
     <ClInclude Include="CRegDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ConfigDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="zPacker.cpp">
@@ -51,6 +54,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CRegDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ConfigDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

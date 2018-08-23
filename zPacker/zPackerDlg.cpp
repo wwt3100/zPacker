@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "zPacker.h"
 #include "zPackerDlg.h"
+#include "ConfigDlg.h"
 #include "afxdialogex.h"
 
 #ifdef _DEBUG
@@ -78,6 +79,8 @@ void CzPackerDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Check(pDX, IDC_SEL_LOCK, m_Lock);
 	DDX_Control(pDX, IDC_HARD_ID, m_HardID);
+	DDX_Control(pDX, IDC_BTN_COMPRESS, m_btnCompress);
+	DDX_Control(pDX, IDC_SEL_LOCK, m_cLock);
 }
 
 BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
@@ -90,6 +93,8 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_WM_RBUTTONUP()
 	ON_BN_CLICKED(IDC_BTN_COMPRESS, &CzPackerDlg::OnBnClickedBtnCompress)
 	ON_COMMAND(ID_FILE_EXIT, &CzPackerDlg::OnFileExit)
+	ON_BN_CLICKED(IDC_BTN_OPEN, &CzPackerDlg::OnBnClickedBtnOpen0)
+	ON_BN_CLICKED(IDC_BTN_OPEN+1, &CzPackerDlg::OnBnClickedBtnOpen1)
 END_MESSAGE_MAP()
 
 
@@ -129,24 +134,152 @@ BOOL CzPackerDlg::OnInitDialog()
 	m_Menu.LoadMenu(IDR_MENU1);
 	SetMenu(&m_Menu);
 
-	CFont *cf = m_HardID.GetFont();
-	LOGFONT lf;
-	cf->GetLogFont(&lf);
+	CFont *cf = m_btnCompress.GetFont();
 	CWinApp* pApp = AfxGetApp();
 	UINT n=0;
-	BYTE PackSel[10] = {0};
-	if (pApp->GetProfileBinary(_T("Config"), _T("PackSel"), (LPBYTE*)PackSel, &n) == 0)
+	LPBYTE PackSel;
+	UINT SelCount;
+	if (pApp->GetProfileBinary(_T("Config"), _T("PackSel"), &PackSel, &n) == 0)
 	{
-		PackSel[0] = 0x80;
+		PackSel = new BYTE{ 0x0B };
 		pApp->WriteProfileBinary(_T("Config"), _T("PackSel"), PackSel, 1);
+		pApp->WriteProfileString(_T("Config"), _T("All Licenses"),_T("Plasma,PlasmaGas,ScanRF,Pure,PurePlus"));
+		SelCount = 1;
 	}
-	HFONT  hFont = CreateFont(15, 0, 0,0,FW_NORMAL,FALSE,FALSE,0,ANSI_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
-		DEFAULT_QUALITY,DEFAULT_PITCH | FF_SWISS,_T("MS Shell Dlg 2"));//MS Shell Dlg		//Consolas
-	m_GroupBox = new CButton;
-	m_GroupBox->Create(_T("HMI"), BS_GROUPBOX | WS_VISIBLE
-		, CRect(10, 25, 480, 100), this, 8888);
-	//m_GroupBox->SetFont(cf);
-	m_GroupBox->SendMessage(WM_SETFONT, (WPARAM)hFont, TRUE);
+	else
+	{
+		SelCount = _mm_popcnt_u32(*PackSel);
+	}
+	UINT BlockHeight = 90;
+	CRect rect,ccr;
+	GetWindowRect(&rect);
+	MoveWindow(rect.left, rect.top - (BlockHeight/2)*SelCount, rect.Width(), rect.Height() + BlockHeight*SelCount);//设置窗口显示的位置以及大小
+	GetWindowRect(&rect);
+	m_btnCompress.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	GetClientRect(&rect);
+	m_btnCompress.MoveWindow(ccr.left, rect.bottom  - ccr.Height()-10, ccr.Width(), ccr.Height());
+	m_cLock.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	m_cLock.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
+	m_HardID.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	m_HardID.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
+
+	CString GroupBoxName[8] = { _T("HMI"), _T("MainBoard"), _T("Handle"), _T("License(s)"), 0 };
+	UINT Sel = *PackSel;
+	for (UINT num = 0, i = 0; i < 8; i++)
+	{
+		if ((Sel >> i) & 1)
+		{
+			m_GroupBox = new CButton;
+			m_GroupBox->Create(GroupBoxName[i], BS_GROUPBOX | WS_VISIBLE | WS_CLIPSIBLINGS
+				, CRect(10, BlockHeight*num + 5, rect.Width() - 10, BlockHeight*num + 5 + BlockHeight - 10), this, IDC_GROUPBOX + num);
+			m_GroupBox->SetFont(cf);
+
+			if (i == 3)
+			{
+				CString strGet;
+				CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
+				CStringArray strArry;
+				UINT is = 0, iss = 0;
+				while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
+				{
+					UINT line = 0;
+					if (iss > 4)
+					{
+						line += 25;
+						is = 0;
+					}
+					strArry.Add(strGet);
+					m_btnOpen = new CButton;
+					m_btnOpen->Create((strArry.GetData() + iss)->GetString(), BS_CHECKBOX | WS_VISIBLE | BS_AUTOCHECKBOX,
+						CRect(30 + is * 80, BlockHeight*num + 25 + line, 110 + is * 80, BlockHeight*num + 25 + 25 + line), this, IDC_LIS_CHECKBOX + num);
+					m_btnOpen->SetFont(cf);
+					is++;
+					iss++;
+				}
+			}
+			else
+			{
+				m_OpenFilePath = new CEdit;
+				m_OpenFilePath->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
+					CRect(30, BlockHeight*num + 35 + 2, 260, BlockHeight*num + 35 + 2 + 20), this, IDC_EDIT_INPUT + num);
+				m_OpenFilePath->SetFont(cf);
+
+				m_btnOpen = new CButton;
+				m_btnOpen->Create(_T("Open"), BS_PUSHBUTTON | WS_VISIBLE,
+					CRect(280, BlockHeight*num + 35, 360, BlockHeight*num + 35 + 25), this, IDC_BTN_OPEN + num);
+				m_btnOpen->SetFont(cf);
+
+				m_maskEdit = new CMFCMaskedEdit;
+				m_maskEdit->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
+					CRect(380, BlockHeight*num + 35 + 2, 440, BlockHeight*num + 35 + 2 + 20), this, IDC_MASK_EDIT + num);
+				m_maskEdit->EnableMask(_T("dd dd dd"), _T("__.__.__"), _T(' '));
+				m_maskEdit->SetWindowText(_T("00.00.01"));
+				m_maskEdit->SetFont(cf);
+			}
+			num++;
+		}
+		else
+		{
+			CWnd *p;
+			p = GetDlgItem(IDC_GROUPBOX + num);
+			if (p != nullptr)
+			{
+				p->DestroyWindow();
+				delete p;
+				if (i == 3)
+				{
+					CString strGet;
+					CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
+					CStringArray strArry;
+					UINT is = 0, iss = 0;
+					while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
+					{
+						UINT line = 0;
+						if (iss > 4)
+						{
+							line += 25;
+							is = 0;
+						}
+						p = GetDlgItem(IDC_LIS_CHECKBOX + num);
+						if (p != nullptr)
+						{
+							p->DestroyWindow();
+							delete p;
+						}
+						is++;
+						iss++;
+					}
+				}
+				else
+				{
+					p = GetDlgItem(IDC_EDIT_INPUT + num);
+					if (p != nullptr)
+					{
+						p->DestroyWindow();
+						delete p;
+					}
+					p = GetDlgItem(IDC_BTN_OPEN + num);
+					if (p != nullptr)
+					{
+						p->DestroyWindow();
+						delete p;
+					}
+					p = GetDlgItem(IDC_MASK_EDIT + num);
+					if (p != nullptr)
+					{
+						p->DestroyWindow();
+						delete p;
+					}
+				}
+			}
+		}
+	}
+
+
+
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -211,10 +344,32 @@ void CzPackerDlg::OnFileExit()
 	CDialog::OnCancel();
 }
 
+BOOL CzPackerDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE) //屏蔽ESC健
+		return TRUE;
+	else if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)	//屏蔽回车键
+	{
+		int i = GetFocus()->GetDlgCtrlID();
+		if (i == IDCANCEL)
+			return TRUE;
+	}
+	else if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F1)
+	{
+		return TRUE;
+	}
+	else if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F5)
+	{
+		OnBnClickedBtnCompress();
+	}
+
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
 void CzPackerDlg::OnBnClickedBtnOpenFile()
 {
 	CString Filename;
-	CFileDialog openDlg(TRUE, _T("All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("All File(*.*)|*.*||"), this);
+	CFileDialog openDlg(TRUE, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*||"), this);
 	INT_PTR result = openDlg.DoModal();
 	if (result == IDOK)
 	{
@@ -224,16 +379,16 @@ void CzPackerDlg::OnBnClickedBtnOpenFile()
 		testFile.Open(Filename.GetString(), CFile::modeRead, 0);
 		BYTE *f_buf = new BYTE[(DWORD)testFile.GetLength()];
 		BYTE *f_buf2 = new BYTE[(DWORD)testFile.GetLength()];
-		testFile.Read(f_buf, testFile.GetLength());
+		testFile.Read(f_buf,(UINT) testFile.GetLength());
 
-		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, testFile.GetLength());
+		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, (size_t)testFile.GetLength());
 
 		size_t csize = zPack_GetSize_compressed((LPCSTR)f_buf2);
 		size_t dsize = zPcak_GetSize_decompressed((LPCSTR)f_buf2);
 
 		CString str;
 		str.Format(_T("%d,%d,%d"), rdsize, csize, dsize);
-		AfxMessageBox(str, 0, 0);
+		MessageBox(str);
 	}
 }
 
@@ -258,7 +413,7 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
 	popMenu.AppendMenu(MF_STRING, ID_PACK_HMI, _T("HMI"));
 	popMenu.AppendMenu(MF_STRING, ID_PACK_MAINBOARD, _T("MainBoard"));
 	popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_HANDLE, _T("Handle"));
-	popMenu.AppendMenu(MF_STRING, ID_PACK_LICENSE, _T("License"));
+	popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_LICENSE, _T("License"));
 	popMenu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 
 	CDialogEx::OnRButtonUp(nFlags, point);
@@ -267,8 +422,49 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
 
 void CzPackerDlg::OnBnClickedBtnCompress()
 {
-	// TODO:  在此添加控件通知处理程序代码
+	ConfigDlg dlg;
+	dlg.DoModal();
 }
+
+void CzPackerDlg::OnBnClickedBtnOpen0()
+{
+	CFolderPickerDialog fd(NULL, 0, this, 0);
+	if (fd.DoModal() == IDOK)
+	{
+		SetDlgItemText(IDC_EDIT_INPUT, fd.GetPathName());
+	}
+	//CString m_strFileOut = _T("");
+	//TCHAR servPath[MAX_PATH];//用来存放文件夹路径  
+	//BROWSEINFO bi;
+	//LPITEMIDLIST pidl;
+	//bi.hwndOwner = this->m_hWnd;
+	//bi.pidlRoot = NULL;
+	//bi.pszDisplayName = servPath;
+	//bi.lpszTitle = _T("选择文件路径");
+	//bi.ulFlags = BIF_RETURNONLYFSDIRS;
+	//bi.lpfn = NULL;
+	//bi.lParam = NULL;
+	//bi.iImage = NULL;
+	//if ((pidl = SHBrowseForFolder(&bi)) != NULL)
+	//{
+	//	if (SUCCEEDED(SHGetPathFromIDList(pidl, servPath))) //得到文件夹的全路径，不要的话，只得本文件夹名  
+	//	{
+	//		SetDlgItemText(IDC_EDIT_INPUT, servPath);
+	//	}
+	//}
+}
+void CzPackerDlg::OnBnClickedBtnOpen1()
+{
+	CString Filename;
+	CFileDialog openDlg(TRUE, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*||"), this);
+	INT_PTR result = openDlg.DoModal();
+	if (result == IDOK)
+	{
+		Filename = openDlg.GetPathName();
+		SetDlgItemText(IDC_EDIT_INPUT + 1, Filename.GetString());
+	}
+}
+
 
 
 

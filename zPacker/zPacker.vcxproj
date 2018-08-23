@@ -101,6 +101,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConfigDlg.h" />
     <ClInclude Include="CRegDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -110,6 +111,7 @@
     <ClInclude Include="zPackerDlg.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConfigDlg.cpp" />
     <ClCompile Include="CRegDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

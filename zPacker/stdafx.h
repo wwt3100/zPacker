@@ -37,6 +37,7 @@
 //#include "lib_qlz/quicklz.h"
 #include "VMProtectSDK.h"
 #include <afxcontrolbars.h>
+#include <afxcoll.h>
 
 
 #include "../zPacklib/zPacklib.h"
