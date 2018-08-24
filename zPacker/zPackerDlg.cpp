@@ -95,6 +95,16 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_COMMAND(ID_FILE_EXIT, &CzPackerDlg::OnFileExit)
 	ON_BN_CLICKED(IDC_BTN_OPEN, &CzPackerDlg::OnBnClickedBtnOpen0)
 	ON_BN_CLICKED(IDC_BTN_OPEN+1, &CzPackerDlg::OnBnClickedBtnOpen1)
+	ON_COMMAND(ID_PACK_HMI, &CzPackerDlg::OnPackHmi)
+	ON_UPDATE_COMMAND_UI(ID_PACK_HMI, &CzPackerDlg::OnUpdatePackHmi)
+	ON_COMMAND(ID_PACK_MAINBOARD, &CzPackerDlg::OnPackMainboard)
+	ON_UPDATE_COMMAND_UI(ID_PACK_MAINBOARD, &CzPackerDlg::OnUpdatePackMainboard)
+	ON_COMMAND(ID_PACK_HANDLE, &CzPackerDlg::OnPackHandle)
+	ON_UPDATE_COMMAND_UI(ID_PACK_HANDLE, &CzPackerDlg::OnUpdatePackHandle)
+	ON_COMMAND(ID_PACK_LICENSE, &CzPackerDlg::OnPackLicense)
+	ON_UPDATE_COMMAND_UI(ID_PACK_LICENSE, &CzPackerDlg::OnUpdatePackLicense)
+	ON_WM_INITMENUPOPUP()
+	ON_BN_CLICKED(IDC_SEL_LOCK, &CzPackerDlg::OnBnClickedSelLock)
 END_MESSAGE_MAP()
 
 
@@ -129,157 +139,10 @@ BOOL CzPackerDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
-	// TODO:  在此添加额外的初始化代码
-	CMenu m_Menu;
-	m_Menu.LoadMenu(IDR_MENU1);
-	SetMenu(&m_Menu);
+	CString RegInfo = _T("zPacker  -Peninsula");
+	SetWindowText(RegInfo);
 
-	CFont *cf = m_btnCompress.GetFont();
-	CWinApp* pApp = AfxGetApp();
-	UINT n=0;
-	LPBYTE PackSel;
-	UINT SelCount;
-	if (pApp->GetProfileBinary(_T("Config"), _T("PackSel"), &PackSel, &n) == 0)
-	{
-		PackSel = new BYTE{ 0x0B };
-		pApp->WriteProfileBinary(_T("Config"), _T("PackSel"), PackSel, 1);
-		pApp->WriteProfileString(_T("Config"), _T("All Licenses"),_T("Plasma,PlasmaGas,ScanRF,Pure,PurePlus"));
-		SelCount = 1;
-	}
-	else
-	{
-		SelCount = _mm_popcnt_u32(*PackSel);
-	}
-	UINT BlockHeight = 90;
-	CRect rect,ccr;
-	GetWindowRect(&rect);
-	MoveWindow(rect.left, rect.top - (BlockHeight/2)*SelCount, rect.Width(), rect.Height() + BlockHeight*SelCount);//设置窗口显示的位置以及大小
-	GetWindowRect(&rect);
-	m_btnCompress.GetWindowRect(ccr);
-	ScreenToClient(&ccr);
-	GetClientRect(&rect);
-	m_btnCompress.MoveWindow(ccr.left, rect.bottom  - ccr.Height()-10, ccr.Width(), ccr.Height());
-	m_cLock.GetWindowRect(ccr);
-	ScreenToClient(&ccr);
-	m_cLock.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
-	m_HardID.GetWindowRect(ccr);
-	ScreenToClient(&ccr);
-	m_HardID.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
-
-	CString GroupBoxName[8] = { _T("HMI"), _T("MainBoard"), _T("Handle"), _T("License(s)"), 0 };
-	UINT Sel = *PackSel;
-	for (UINT num = 0, i = 0; i < 8; i++)
-	{
-		if ((Sel >> i) & 1)
-		{
-			m_GroupBox = new CButton;
-			m_GroupBox->Create(GroupBoxName[i], BS_GROUPBOX | WS_VISIBLE | WS_CLIPSIBLINGS
-				, CRect(10, BlockHeight*num + 5, rect.Width() - 10, BlockHeight*num + 5 + BlockHeight - 10), this, IDC_GROUPBOX + num);
-			m_GroupBox->SetFont(cf);
-
-			if (i == 3)
-			{
-				CString strGet;
-				CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
-				CStringArray strArry;
-				UINT is = 0, iss = 0;
-				while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
-				{
-					UINT line = 0;
-					if (iss > 4)
-					{
-						line += 25;
-						is = 0;
-					}
-					strArry.Add(strGet);
-					m_btnOpen = new CButton;
-					m_btnOpen->Create((strArry.GetData() + iss)->GetString(), BS_CHECKBOX | WS_VISIBLE | BS_AUTOCHECKBOX,
-						CRect(30 + is * 80, BlockHeight*num + 25 + line, 110 + is * 80, BlockHeight*num + 25 + 25 + line), this, IDC_LIS_CHECKBOX + num);
-					m_btnOpen->SetFont(cf);
-					is++;
-					iss++;
-				}
-			}
-			else
-			{
-				m_OpenFilePath = new CEdit;
-				m_OpenFilePath->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
-					CRect(30, BlockHeight*num + 35 + 2, 260, BlockHeight*num + 35 + 2 + 20), this, IDC_EDIT_INPUT + num);
-				m_OpenFilePath->SetFont(cf);
-
-				m_btnOpen = new CButton;
-				m_btnOpen->Create(_T("Open"), BS_PUSHBUTTON | WS_VISIBLE,
-					CRect(280, BlockHeight*num + 35, 360, BlockHeight*num + 35 + 25), this, IDC_BTN_OPEN + num);
-				m_btnOpen->SetFont(cf);
-
-				m_maskEdit = new CMFCMaskedEdit;
-				m_maskEdit->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
-					CRect(380, BlockHeight*num + 35 + 2, 440, BlockHeight*num + 35 + 2 + 20), this, IDC_MASK_EDIT + num);
-				m_maskEdit->EnableMask(_T("dd dd dd"), _T("__.__.__"), _T(' '));
-				m_maskEdit->SetWindowText(_T("00.00.01"));
-				m_maskEdit->SetFont(cf);
-			}
-			num++;
-		}
-		else
-		{
-			CWnd *p;
-			p = GetDlgItem(IDC_GROUPBOX + num);
-			if (p != nullptr)
-			{
-				p->DestroyWindow();
-				delete p;
-				if (i == 3)
-				{
-					CString strGet;
-					CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
-					CStringArray strArry;
-					UINT is = 0, iss = 0;
-					while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
-					{
-						UINT line = 0;
-						if (iss > 4)
-						{
-							line += 25;
-							is = 0;
-						}
-						p = GetDlgItem(IDC_LIS_CHECKBOX + num);
-						if (p != nullptr)
-						{
-							p->DestroyWindow();
-							delete p;
-						}
-						is++;
-						iss++;
-					}
-				}
-				else
-				{
-					p = GetDlgItem(IDC_EDIT_INPUT + num);
-					if (p != nullptr)
-					{
-						p->DestroyWindow();
-						delete p;
-					}
-					p = GetDlgItem(IDC_BTN_OPEN + num);
-					if (p != nullptr)
-					{
-						p->DestroyWindow();
-						delete p;
-					}
-					p = GetDlgItem(IDC_MASK_EDIT + num);
-					if (p != nullptr)
-					{
-						p->DestroyWindow();
-						delete p;
-					}
-				}
-			}
-		}
-	}
-
-
-
+	RePaintWindows();
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -323,6 +186,154 @@ void CzPackerDlg::OnPaint()
 	else
 	{
 		CDialogEx::OnPaint();
+	}
+}
+
+void CzPackerDlg::RePaintWindows()
+{
+	CFont *cf = m_btnCompress.GetFont();
+	CWinApp* pApp = AfxGetApp();
+	UINT n = 0;
+	UINT SelCount;
+	if (pApp->GetProfileBinary(_T("Config"), _T("PackSel"), &PackSel, &n) == 0)
+	{
+		PackSel = new BYTE{ 0x01 };
+		pApp->WriteProfileBinary(_T("Config"), _T("PackSel"), PackSel, 1);
+		pApp->WriteProfileString(_T("Config"), _T("All Licenses"), _T("Plasma,PlasmaGas,ScanRF,Pure,PurePlus"));
+		SelCount = 1;
+	}
+	else
+	{
+		SelCount = _mm_popcnt_u32(*PackSel);
+	}
+	UINT BlockHeight = 90;
+	CRect rect, ccr;
+	GetWindowRect(&rect);
+	MoveWindow(rect.left, rect.top , rect.Width(), 115 + BlockHeight*SelCount);//设置窗口显示的位置以及大小
+	GetWindowRect(&rect);
+	m_btnCompress.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	GetClientRect(&rect);
+	m_btnCompress.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
+	m_cLock.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	m_cLock.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
+	m_HardID.GetWindowRect(ccr);
+	ScreenToClient(&ccr);
+	m_HardID.MoveWindow(ccr.left, rect.bottom - ccr.Height() - 10, ccr.Width(), ccr.Height());
+
+	CString GroupBoxName[8] = { _T("HMI"), _T("MainBoard"), _T("Handle"), _T("License(s)"), 0 };
+	UINT Sel = *PackSel;
+	for (UINT i = 0; i < 8; i++)	//del all
+	{
+		m_BlockSel[i] = false;
+		CWnd *p;
+		p = GetDlgItem(IDC_GROUPBOX + i);
+		if (p != nullptr)
+		{
+			p->DestroyWindow();
+			delete p;
+			if (i == 3)
+			{
+				CString strGet;
+				CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
+				CStringArray strArry;
+				UINT is = 0, iss = 0;
+				while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
+				{
+					UINT line = 0;
+					if (iss > 4)
+					{
+						line += 25;
+						is = 0;
+					}
+					p = GetDlgItem(IDC_LIS_CHECKBOX + i);
+					if (p != nullptr)
+					{
+						p->DestroyWindow();
+						delete p;
+					}
+					is++;
+					iss++;
+				}
+			}
+			else
+			{
+				p = GetDlgItem(IDC_EDIT_INPUT + i);
+				if (p != nullptr)
+				{
+					p->DestroyWindow();
+					delete p;
+				}
+				p = GetDlgItem(IDC_BTN_OPEN + i);
+				if (p != nullptr)
+				{
+					p->DestroyWindow();
+					delete p;
+				}
+				p = GetDlgItem(IDC_MASK_EDIT + i);
+				if (p != nullptr)
+				{
+					p->DestroyWindow();
+					delete p;
+				}
+			}
+		}
+	}
+	for (UINT num = 0, i = 0; i < 8; i++)		//rebuide
+	{
+		if ((Sel >> i) & 1)
+		{
+			m_BlockSel[i] = true;
+			m_GroupBox = new CButton;
+			m_GroupBox->Create(GroupBoxName[i], BS_GROUPBOX | WS_VISIBLE | WS_CLIPSIBLINGS
+				, CRect(10, BlockHeight*num + 5, rect.Width() - 10, BlockHeight*num + 5 + BlockHeight - 10), this, IDC_GROUPBOX + i);
+			m_GroupBox->SetFont(cf);
+
+			if (i == 3)
+			{
+				CString strGet;
+				CString Lis = pApp->GetProfileString(_T("Config"), _T("All Licenses"));
+				CStringArray strArry;
+				UINT is = 0, iss = 0;
+				while (AfxExtractSubString(strGet, Lis, iss, _T(',')))
+				{
+					UINT line = 0;
+					if (iss > 4)
+					{
+						line += 25;
+						is = 0;
+					}
+					strArry.Add(strGet);
+					m_btnOpen = new CButton;
+					m_btnOpen->Create((strArry.GetData() + iss)->GetString(), BS_CHECKBOX | WS_VISIBLE | BS_AUTOCHECKBOX,
+						CRect(30 + is * 80, BlockHeight*num + 25 + line, 110 + is * 80, BlockHeight*num + 25 + 25 + line), this, IDC_LIS_CHECKBOX + i);
+					m_btnOpen->SetFont(cf);
+					is++;
+					iss++;
+				}
+			}
+			else
+			{
+				m_OpenFilePath = new CEdit;
+				m_OpenFilePath->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
+					CRect(30, BlockHeight*num + 35 + 2, 260, BlockHeight*num + 35 + 2 + 20), this, IDC_EDIT_INPUT + i);
+				m_OpenFilePath->SetFont(cf);
+
+				m_btnOpen = new CButton;
+				m_btnOpen->Create(_T("Open"), BS_PUSHBUTTON | WS_VISIBLE,
+					CRect(280, BlockHeight*num + 35, 360, BlockHeight*num + 35 + 25), this, IDC_BTN_OPEN + i);
+				m_btnOpen->SetFont(cf);
+
+				m_maskEdit = new CMFCMaskedEdit;
+				m_maskEdit->Create(ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_BORDER | WS_VISIBLE | WS_TABSTOP,
+					CRect(380, BlockHeight*num + 35 + 2, 440, BlockHeight*num + 35 + 2 + 20), this, IDC_MASK_EDIT + i);
+				m_maskEdit->EnableMask(_T("dd dd dd"), _T("__.__.__"), _T(' '));
+				m_maskEdit->SetWindowText(_T("00.00.01"));
+				m_maskEdit->SetFont(cf);
+			}
+			num++;
+		}
 	}
 }
 
@@ -405,15 +416,27 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
 {
 	POINT pt;
 	GetCursorPos(&pt);
-
+	
 	CMenu popMenu;
 	popMenu.CreatePopupMenu();
 	popMenu.AppendMenu(MF_STRING | MF_DISABLED, 0, _T("Pack"));
 	popMenu.AppendMenu(MF_SEPARATOR);
-	popMenu.AppendMenu(MF_STRING, ID_PACK_HMI, _T("HMI"));
-	popMenu.AppendMenu(MF_STRING, ID_PACK_MAINBOARD, _T("MainBoard"));
-	popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_HANDLE, _T("Handle"));
-	popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_LICENSE, _T("License"));
+	if (m_BlockSel[0])
+		popMenu.AppendMenu(MF_STRING | MF_CHECKED, ID_PACK_HMI, _T("HMI"));
+	else
+		popMenu.AppendMenu(MF_STRING , ID_PACK_HMI, _T("HMI"));
+	if (m_BlockSel[1])
+		popMenu.AppendMenu(MF_STRING | MF_CHECKED, ID_PACK_MAINBOARD, _T("MainBoard"));
+	else
+		popMenu.AppendMenu(MF_STRING, ID_PACK_MAINBOARD, _T("MainBoard"));
+	if (m_BlockSel[2])
+		popMenu.AppendMenu(MF_STRING | MF_CHECKED, ID_PACK_HANDLE, _T("Handle"));
+	else
+		popMenu.AppendMenu(MF_STRING | MF_DISABLED, ID_PACK_HANDLE, _T("Handle"));
+	if (m_BlockSel[3])
+		popMenu.AppendMenu(MF_STRING | MF_CHECKED, ID_PACK_LICENSE, _T("License"));
+	else
+		popMenu.AppendMenu(MF_STRING , ID_PACK_LICENSE, _T("License"));
 	popMenu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 
 	CDialogEx::OnRButtonUp(nFlags, point);
@@ -465,8 +488,164 @@ void CzPackerDlg::OnBnClickedBtnOpen1()
 	}
 }
 
+void CzPackerDlg::OnPackHmi()
+{
+	m_BlockSel[0] = !m_BlockSel[0];
+	BYTE sel = *PackSel;
+	if (m_BlockSel[0])
+		sel |= 0x01;
+	else
+		sel &= 0xFE;
+	AfxGetApp()->WriteProfileBinary(_T("Config"), _T("PackSel"), &sel, 1);
+	RePaintWindows();
+}
+
+void CzPackerDlg::OnUpdatePackHmi(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_BlockSel[0]);
+}
+
+void CzPackerDlg::OnPackMainboard()
+{
+	m_BlockSel[1] = !m_BlockSel[1];
+	BYTE sel = *PackSel;
+	if (m_BlockSel[1])
+		sel |= 0x02;
+	else
+		sel &= 0xFD;
+	AfxGetApp()->WriteProfileBinary(_T("Config"), _T("PackSel"), &sel, 1);
+	RePaintWindows();
+}
+
+void CzPackerDlg::OnUpdatePackMainboard(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_BlockSel[1]);
+}
+
+void CzPackerDlg::OnPackHandle()
+{
+	m_BlockSel[2] = !m_BlockSel[2];
+	BYTE sel = *PackSel;
+	if (m_BlockSel[2])
+		sel |= 0x04;
+	else
+		sel &= 0xFB;
+	AfxGetApp()->WriteProfileBinary(_T("Config"), _T("PackSel"), &sel, 1);
+	RePaintWindows();
+}
+
+void CzPackerDlg::OnUpdatePackHandle(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_BlockSel[2]);
+}
+
+void CzPackerDlg::OnPackLicense()
+{
+	m_BlockSel[3] = !m_BlockSel[3];
+	BYTE sel = *PackSel;
+	if (m_BlockSel[3])
+		sel |= 0x08;
+	else
+		sel &= 0xF7;
+	AfxGetApp()->WriteProfileBinary(_T("Config"), _T("PackSel"), &sel, 1);
+	RePaintWindows();
+}
+
+void CzPackerDlg::OnUpdatePackLicense(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_BlockSel[3]);
+}
 
 
 
+void CzPackerDlg::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)	//补全消息处理
+{
+	CDialogEx::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
+
+	ASSERT(pPopupMenu != NULL);
+	// Check the enabled state of various menu items.
+
+	CCmdUI state;
+	state.m_pMenu = pPopupMenu;
+	ASSERT(state.m_pOther == NULL);
+	ASSERT(state.m_pParentMenu == NULL);
+
+	// Determine if menu is popup in top-level menu and set m_pOther to
+	// it if so (m_pParentMenu == NULL indicates that it is secondary popup).
+	HMENU hParentMenu;
+	if (AfxGetThreadState()->m_hTrackingMenu == pPopupMenu->m_hMenu)
+		state.m_pParentMenu = pPopupMenu;    // Parent == child for tracking popup.
+	else if ((hParentMenu = ::GetMenu(m_hWnd)) != NULL)
+	{
+		CWnd* pParent = this;
+		// Child Windows don't have menus--need to go to the top!
+		if (pParent != NULL &&
+			(hParentMenu = ::GetMenu(pParent->m_hWnd)) != NULL)
+		{
+			int nIndexMax = ::GetMenuItemCount(hParentMenu);
+			for (int nIndex = 0; nIndex < nIndexMax; nIndex++)
+			{
+				if (::GetSubMenu(hParentMenu, nIndex) == pPopupMenu->m_hMenu)
+				{
+					// When popup is found, m_pParentMenu is containing menu.
+					state.m_pParentMenu = CMenu::FromHandle(hParentMenu);
+					break;
+				}
+			}
+		}
+	}
+
+	state.m_nIndexMax = pPopupMenu->GetMenuItemCount();
+	for (state.m_nIndex = 0; state.m_nIndex < state.m_nIndexMax;
+		state.m_nIndex++)
+	{
+		state.m_nID = pPopupMenu->GetMenuItemID(state.m_nIndex);
+		if (state.m_nID == 0)
+			continue; // Menu separator or invalid cmd - ignore it.
+
+		ASSERT(state.m_pOther == NULL);
+		ASSERT(state.m_pMenu != NULL);
+		if (state.m_nID == (UINT)-1)
+		{
+			// Possibly a popup menu, route to first item of that popup.
+			state.m_pSubMenu = pPopupMenu->GetSubMenu(state.m_nIndex);
+			if (state.m_pSubMenu == NULL ||
+				(state.m_nID = state.m_pSubMenu->GetMenuItemID(0)) == 0 ||
+				state.m_nID == (UINT)-1)
+			{
+				continue;       // First item of popup can't be routed to.
+			}
+			state.DoUpdate(this, TRUE);   // Popups are never auto disabled.
+		}
+		else
+		{
+			// Normal menu item.
+			// Auto enable/disable if frame window has m_bAutoMenuEnable
+			// set and command is _not_ a system command.
+			state.m_pSubMenu = NULL;
+			state.DoUpdate(this, FALSE);
+		}
+
+		// Adjust for menu deletions and additions.
+		UINT nCount = pPopupMenu->GetMenuItemCount();
+		if (nCount < state.m_nIndexMax)
+		{
+			state.m_nIndex -= (state.m_nIndexMax - nCount);
+			while (state.m_nIndex < nCount &&
+				pPopupMenu->GetMenuItemID(state.m_nIndex) == state.m_nID)
+			{
+				state.m_nIndex++;
+			}
+		}
+		state.m_nIndexMax = nCount;
+	}
+}
 
 
+void CzPackerDlg::OnBnClickedSelLock()
+{
+	if (m_cLock.GetCheck())
+		m_HardID.ShowWindow(TRUE);
+	else
+		m_HardID.ShowWindow(FALSE);
+}

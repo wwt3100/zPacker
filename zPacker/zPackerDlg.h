@@ -36,6 +36,7 @@ public:
 // 实现
 protected:
 	HICON m_hIcon;
+	void RePaintWindows();
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
@@ -43,6 +44,8 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+	
+	
 public:
 	afx_msg void OnBnClickedBtnOpenFile();
 	afx_msg void OnBnClickedBtnOpen0();
@@ -51,10 +54,11 @@ public:
 	afx_msg void OnDropFiles(HDROP hDropInfo);
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnBnClickedBtnCompress();
-	afx_msg void OnEnSetfocusEditVersion1();
 	afx_msg void OnFileExit();
+	LPBYTE PackSel;
 	BOOL m_Lock;
-	
+	BOOL m_BlockSel[8];
+
 	CEdit *m_OpenFilePath;
 
 	CButton *m_GroupBox;
@@ -64,4 +68,14 @@ public:
 	CButton m_btnCompress;
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	CButton m_cLock;
+	afx_msg void OnPackHmi();
+	afx_msg void OnUpdatePackHmi(CCmdUI *pCmdUI);
+	afx_msg void OnPackMainboard();
+	afx_msg void OnUpdatePackMainboard(CCmdUI *pCmdUI);
+	afx_msg void OnPackHandle();
+	afx_msg void OnUpdatePackHandle(CCmdUI *pCmdUI);
+	afx_msg void OnPackLicense();
+	afx_msg void OnUpdatePackLicense(CCmdUI *pCmdUI);
+	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
+	afx_msg void OnBnClickedSelLock();
 };

@@ -47,6 +47,7 @@
 #pragma comment(lib, "../Release/zPacklib.lib")
 #endif
 
+#include "../cJson/cJSON.h"
 
 
 #ifdef _UNICODE
