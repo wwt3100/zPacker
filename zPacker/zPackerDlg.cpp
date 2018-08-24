@@ -105,6 +105,7 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_UPDATE_COMMAND_UI(ID_PACK_LICENSE, &CzPackerDlg::OnUpdatePackLicense)
 	ON_WM_INITMENUPOPUP()
 	ON_BN_CLICKED(IDC_SEL_LOCK, &CzPackerDlg::OnBnClickedSelLock)
+	ON_COMMAND(ID_FILE_OPENJSON, &CzPackerDlg::OnFileOpenjson)
 END_MESSAGE_MAP()
 
 
@@ -648,4 +649,20 @@ void CzPackerDlg::OnBnClickedSelLock()
 		m_HardID.ShowWindow(TRUE);
 	else
 		m_HardID.ShowWindow(FALSE);
+}
+
+
+void CzPackerDlg::OnFileOpenjson()
+{
+	CString Filename;
+	CFileDialog openDlg(TRUE, _T("JSON File(*.json)|*.json|All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("JSON File(*.json)|*.json|All File(*.*)|*.*||"), this);
+	INT_PTR result = openDlg.DoModal();
+	if (result != IDOK)
+		return;
+	Filename = openDlg.GetPathName();
+	
+	cJSON_Hooks cjh;
+	cjh.free_fn = free;
+	cjh.malloc_fn = malloc;
+	cJSON_InitHooks(&cjh);
 }

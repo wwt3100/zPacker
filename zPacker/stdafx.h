@@ -48,7 +48,11 @@
 #endif
 
 #include "../cJson/cJSON.h"
-
+#ifdef _DEBUG
+#pragma comment(lib, "../Debug/cJson.lib")
+#else
+#pragma comment(lib, "../Release/cJson.lib")
+#endif
 
 #ifdef _UNICODE
 #if defined _M_IX86

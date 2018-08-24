@@ -78,4 +78,5 @@ public:
 	afx_msg void OnUpdatePackLicense(CCmdUI *pCmdUI);
 	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
 	afx_msg void OnBnClickedSelLock();
+	afx_msg void OnFileOpenjson();
 };
