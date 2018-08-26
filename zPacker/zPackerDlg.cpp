@@ -217,7 +217,7 @@ void CzPackerDlg::OnBnClickedMenuAbout()
 //		Filename = openDlg.GetPathName();
 //		SetDlgItemText(IDC_EDIT_INPUT_FILE, Filename.GetString());
 //		CFile testFile;
-//		testFile.Open(Filename.GetString(), CFile::modeRead, 0);
+//		testFile.Open(Fwilename.GetString(), CFile::modeRead, 0);
 //		BYTE *f_buf = new BYTE[(DWORD)testFile.GetLength()];
 //		BYTE *f_buf2 = new BYTE[(DWORD)testFile.GetLength()];
 //		testFile.Read(f_buf, testFile.GetLength());
