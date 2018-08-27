@@ -59,7 +59,6 @@ BOOL CzPackerApp::InitInstance()
 	// 激活“Windows Native”视觉管理器，以便在 MFC 控件中启用主题
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 
-	
 
 	VMProtectBegin("Startup");
 	SetRegistryKey(_T("Phil's Software"));
