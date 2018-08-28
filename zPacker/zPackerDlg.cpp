@@ -106,6 +106,7 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_WM_INITMENUPOPUP()
 	ON_BN_CLICKED(IDC_SEL_LOCK, &CzPackerDlg::OnBnClickedSelLock)
 	ON_COMMAND(ID_FILE_OPENJSON, &CzPackerDlg::OnFileOpenjson)
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -140,10 +141,13 @@ BOOL CzPackerDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
+	VMProtectBeginMutation("Timer Init");
 	CString RegInfo = _T("zPacker  -Peninsula");
 	SetWindowText(RegInfo);
-
-
+#ifndef _DEBUG
+	SetTimer(1, 5000, NULL);
+#endif // !_DEBUG
+	VMProtectEnd();
 
 	RePaintWindows();
 
@@ -340,6 +344,22 @@ void CzPackerDlg::RePaintWindows()
 	}
 }
 
+void CzPackerDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	VMProtectBeginVirtualization("Timer Check");
+#ifndef _DEBUG
+	if (nIDEvent == 1)
+	{
+		if (VMProtectIsProtected() == false || VMProtectIsValidImageCRC() == false || VMProtectIsDebuggerPresent(true) == true)
+		{
+			CDialog::OnCancel();//自动退出
+		}
+	}
+#endif
+	CDialogEx::OnTimer(nIDEvent);
+	VMProtectEnd();
+
+}
 //当用户拖动最小化窗口时系统调用此函数取得光标
 //显示。
 HCURSOR CzPackerDlg::OnQueryDragIcon()
@@ -448,8 +468,9 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
 
 void CzPackerDlg::OnBnClickedBtnCompress()
 {
-	ConfigDlg dlg;
-	dlg.DoModal();
+
+
+
 }
 
 void CzPackerDlg::OnBnClickedBtnOpen0()
@@ -484,11 +505,14 @@ void CzPackerDlg::OnBnClickedBtnOpen1()
 	CString Filename;
 	CFileDialog openDlg(TRUE, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("ROM File(*.bin;*.hex)|*.bin;*.hex|All File(*.*)|*.*||"), this);
 	INT_PTR result = openDlg.DoModal();
-	if (result == IDOK)
-	{
-		Filename = openDlg.GetPathName();
-		SetDlgItemText(IDC_EDIT_INPUT + 1, Filename.GetString());
-	}
+	if (result != IDOK)
+		return;
+
+	Filename = openDlg.GetPathName();
+	SetDlgItemText(IDC_EDIT_INPUT + 1, Filename.GetString());
+
+
+
 }
 
 void CzPackerDlg::OnPackHmi()
@@ -668,3 +692,6 @@ void CzPackerDlg::OnFileOpenjson()
 	cjh.malloc_fn = malloc;
 	cJSON_InitHooks(&cjh);
 }
+
+
+
