@@ -65,10 +65,8 @@ typedef struct tagZPACKFILEHEADER
 
 typedef struct tagZPACKFILERECORD{
 	DWORD		signature;			//0x5A50414B
-	DWORD		frCompressedSize;  //  压缩后的大小
-	DWORD		frUncompressedSize;  // 未压缩的大小
+	BYTE		pNextFileBlock;
 	DWORD		frCompressedCRC;
-	DWORD		frUncompressedCRC;
 	WORD		frFileNameLength;
 	CHAR        *FileName;
 	BYTE		*FileData;
