@@ -54,8 +54,8 @@ typedef enum {
 
 typedef struct tagZPACKFILEHEADER
 {
-	WORD zfType;	//5A 50 //ZP
-	DWORD zfSize;		//文件大小
+	DWORD zfType;	//0x5A50414B
+	//DWORD zfSize;		//文件大小
 	DWORD zfCRC32;		//文件CRC校验
 	WORD zfFileNumber;	//含有文件数
 	WORD zfFileFlag;		//文件信息 bit  | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
@@ -64,9 +64,10 @@ typedef struct tagZPACKFILEHEADER
 } ZPACKFILEHEADER;
 
 typedef struct tagZPACKFILERECORD{
-	DWORD		signature;			//0x5A50414B
-	BYTE		pNextFileBlock;
-	DWORD		frCompressedCRC;
+	DWORD		Signage;	
+	BYTE		*pNextFileBlock;
+	//DWORD		frCompressedCRC;
+	DWORD		frUncompressedCRC;
 	WORD		frFileNameLength;
 	CHAR        *FileName;
 	BYTE		*FileData;
