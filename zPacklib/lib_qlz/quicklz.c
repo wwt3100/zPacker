@@ -538,7 +538,8 @@ static size_t qlz_compress_core(const unsigned char *source, unsigned char *dest
 	return dst - destination < 9 ? 9 : dst - destination;
 }
 
-static size_t qlz_decompress_core(const unsigned char *source, unsigned char *destination, size_t size, qlz_state_decompress *state, const unsigned char *history)
+static size_t qlz_decompress_core(const unsigned char *source, unsigned char *destination,
+	size_t size, qlz_state_decompress *state, const unsigned char *history)
 {
 	const unsigned char *src = source + qlz_size_header((const char *)source);
 	unsigned char *dst = destination;

@@ -1,9 +1,28 @@
 #include "zPacklib.h"
 #include "lib_qlz\quicklz.h"
 
-FRESULT ZPack_open(ZPACK_FIL * fp, const CHAR * path, BYTE mode)
+#if (defined(__X86__) || defined(__i386__) || defined(i386) || defined(_M_IX86) || defined(__386__) || defined(__x86_64__) || defined(_M_X64))
+#define X86X64
+#endif
+
+#define MINOFFSET 2
+#define UNCONDITIONAL_MATCHLEN 6
+#define UNCOMPRESSED_END 4
+#define CWORD_LEN 4
+
+#define FILE_BLOCK 10*1024
+
+FRESULT zf_open(ZPACK_FIL * fp, const CHAR * path, BYTE mode)
 {
 	return FR_OK;
+}
+static void *zf_malloc(size_t size)
+{
+	return malloc(size);
+}
+static void zf_free(void *pointer)
+{
+	free(pointer);
 }
 
 size_t zPack_compress(const void *source, char *destination, size_t size)
@@ -28,87 +47,79 @@ size_t zPack_GetSize_compressed(const char *source)
 	return qlz_size_compressed(source);
 }
 
-
+static ZPACKFILEHEADER zfhead = { 0 };
 UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 {
-	static BYTE *pBUF;
-	if (in->pFil == 0)
-	{
-		if(ZPack_OpenFile(in->pFil, in->FilePath, FA_OPEN_EXISTING| FA_READ)!=0)
-			return ZPACK_FILE_NOT_OPEN;
-	}
 	if (out->pFil == 0)
 	{
-		if (ZPack_OpenFile(out->pFil, out->FilePath, FA_CREATE_ALWAYS| FA_WRITE) != 0)
-			return ZPACK_FILE_NOT_OPEN;
-		pBUF = malloc(OUT_BEFFER_LEN);
-		ZPack_lseek(out->pFil, sizeof(ZPACKFILEHEADER));
-	}
-	
-	size_t r;
-	ui32 compressed;
-	size_t base;
-	ZPACKINFOHEADER ih = { 0 };
-	ih.frUncompressedSize = ZPack_GetFileSize(in->pFil);
-
-	const unsigned char *last_byte = source + size - 1;
-	const unsigned char *src = source;
-	unsigned char *cword_ptr = destination;
-	unsigned char *dst = destination + 4;
-	ui32 cword_val = 1U << 31;
-	const unsigned char *last_matchstart = last_byte - 6 - 4;
-	ui32 fetch = 0;
-	unsigned int lits = 0;
-
-	(void)lits;
-
-	if (src <= last_matchstart)
-		fetch = fast_read(src, 3);
-
-	while (src <= last_matchstart)
-	{
-		if ((cword_val & 1) == 1)
+		if (zf_open(out->pFil, out->FilePath, FA_CREATE_ALWAYS| FA_WRITE) != FR_OK)
 		{
-			// store uncompressed if compression ratio is too low
-			if (src > source + (size >> 1) && dst - destination > src - source - ((src - source) >> 5))
-				return 0;
-
-			fast_write((cword_val >> 1) | (1U << 31), cword_ptr, 4);
-
-			cword_ptr = dst;
-			dst += 4;
-			cword_val = 1U << 31;
-			fetch = fast_read(src, 3);
+			return -1;
+		}
+		if (out->Key != 0)
+		{
+			sm3(out->Key, strnlen_s(out->Key, 512), out->KeyHash);
+		}
+		memset(&zfhead, 0, sizeof(ZPACKFILEHEADER));
+		//zfhead.zfType = 0x5A50414B;
+		zfhead.zfType = 0x4B41505A;
+		zfhead.zfBlockSize = FILE_BLOCK / 1024;
+		zf_lseek(out->pFil, sizeof(ZPACKFILEHEADER));
+	}
+	if (in->pFil != 0)
+	{
+		ZPACKINFOHEADER zihead = { 0 };
+		zfhead.zfFileNumber += 1;
+		UINT filenamelen = strlen(in->FileName);
+		zihead.frFileNameLength = filenamelen;
+		filenamelen = (16 * (filenamelen + 15) / 16);
+		UINT nextfile = zf_tell(in->pFil) + 4;
+		zf_lseek(out->pFil, sizeof(ZPACKINFOHEADER)+ filenamelen);
+		size_t buffsize = zf_size(in->pFil);
+		size_t blocksize = buffsize > FILE_BLOCK ? FILE_BLOCK : buffsize;
+		BYTE *inbuf = zf_malloc(blocksize);
+		BYTE *outbuf = zf_malloc(blocksize + 10);
+		UINT uncomp_crc = -1;
+		UINT outsize = 0;
+		for (UINT i = 0; i < (buffsize / FILE_BLOCK + (buffsize % FILE_BLOCK == 0) ? 0 : 1); i++)
+		{
+			if (i < buffsize / FILE_BLOCK || buffsize % FILE_BLOCK == 0)
+			{
+				blocksize = FILE_BLOCK;
+			}
+			else
+			{
+				blocksize = buffsize % FILE_BLOCK;
+			}
+			BYTE fh;
+			UINT br;
+			qlz_state_compress sd = { 0 };
+			zf_read(in->pFil, inbuf, blocksize, &br);
+			uncomp_crc = GetCRC32Ex(uncomp_crc, inbuf, blocksize);
+			memset(outbuf, 0, blocksize + 10);
+			outsize = outsize + qlz_compress(inbuf, outbuf + 1, blocksize, &sd) + 1;
+			if (i == (buffsize / FILE_BLOCK + (buffsize % FILE_BLOCK == 0) ? 0 : 1) - 1)	//last block
+			{
+				*outbuf = 0xFF;
+			}
+			else
+			{
+				*outbuf = 0xCC;
+			}
+			if (out->Key != 0)
+			{
+				for (UINT c = 0; c < c / 16; c++)
+				{
+					sm4_context ctx;
+					sm4_setkey_enc(&ctx, out->KeyHash + c % 2 ? 0 : 16);
+					sm4_crypt_ecb(&ctx, 1, 16, outbuf + 16 * c, outbuf + 16 * c);
+				}
+			}
 		}
 	}
-	while (src <= last_byte)
-	{
-		if ((cword_val & 1) == 1)
-		{
-			fast_write((cword_val >> 1) | (1U << 31), cword_ptr, 4);
-			cword_ptr = dst;
-			dst += 4;
-			cword_val = 1U << 31;
-		}
-		*dst = *src;
-		src++;
-		dst++;
-		cword_val = (cword_val >> 1);
-	}
-
-	while ((cword_val & 1) != 1)
-		cword_val = (cword_val >> 1);
-
-	fast_write((cword_val >> 1) | (1U << 31), cword_ptr, 4);
-
-	// min. size must be 9 bytes so that the qlz_size functions can take 9 bytes as argument
-	return dst - destination < 9 ? 9 : dst - destination;
-
-
 }
 UINT zPack_Compress_End(OUT_FILEINFO *out)
 {
-	return 0;
-}
 
+}
 

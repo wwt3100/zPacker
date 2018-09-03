@@ -55,39 +55,32 @@ typedef enum {
 typedef struct tagZPACKFILEHEADER
 {
 	DWORD zfType;	//0x5A50414B
-	//DWORD zfSize;		//文件大小
 	DWORD zfCRC32;		//文件CRC校验
 	WORD zfFileNumber;	//含有文件数
 	WORD zfFileFlag;		//文件信息 bit  | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 	                        //		        文件名加密|文件加密                                           |压缩等级(1/2/3)
-	DWORD zfOffBits;
+	DWORD zfBlockSize;	//单位kb
 } ZPACKFILEHEADER;
 
 typedef struct tagZPACKFILERECORD{
-	DWORD		Signage;	
-	BYTE		*pNextFileBlock;
-	//DWORD		frCompressedCRC;
+	DWORD		Signage;	//0x5A50414B
+	DWORD		NextFileOffset;
 	DWORD		frUncompressedCRC;
 	WORD		frFileNameLength;
-	CHAR        *FileName;
-	BYTE		*FileData;
+	WORD        FileNameOffset;
 } ZPACKINFOHEADER;
+
 
 typedef struct tagINFILEINFO
 {
 	WORD		Type;		//0->其他文件  1->带文件夹文件	//-1->文件继续写
-	CHAR		FilePath[255];
-	DWORD		frCompressedCRC;
-	DWORD		frUncompressedCRC;
+	CHAR		FileName[255];
 	ZPACK_FIL *pFil;
 }IN_FILEINFO;
 typedef struct tagOUTFILEINFO
 {
-	WORD zfFileFlag;		//文件信息 bit  | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-						//		        文件名加密|文件加密                                           |压缩等级(1/2/3)
-	WORD	inFileNumber;
 	CHAR	*Key;
-	CHAR	*KeyHash;
+	CHAR	KeyHash[32];
 	CHAR	FilePath[255];
 	ZPACK_FIL *pFil;
 }OUT_FILEINFO;
@@ -105,30 +98,37 @@ enum zPackStateFlags
 #if defined (__cplusplus)
 extern "C" {
 #endif
-	FRESULT ZPack_open(
+	FRESULT zf_open(
 		ZPACK_FIL* fp,           /* [OUT] Pointer to the file object structure */
 		const CHAR* path, /* [IN] File name */
 		BYTE mode          /* [IN] Mode flags */
 	);
-	FRESULT ZPack_read(
+	FRESULT zf_read(
 		ZPACK_FIL* fp,     /* [IN] File object */
 		void* buff,  /* [OUT] Buffer to store read data */
 		UINT btr,    /* [IN] Number of bytes to read */
 		UINT* br     /* [OUT] Number of bytes read */
 	);
-	FRESULT ZPack_write(
+	FRESULT zf_write(
 		ZPACK_FIL* fp,          /* [IN] Pointer to the file object structure */
 		const void* buff, /* [IN] Pointer to the data to be written */
 		UINT btw,         /* [IN] Number of bytes to write */
 		UINT* bw          /* [OUT] Pointer to the variable to return number of bytes written */
 	);
-	FRESULT ZPack_close(
+	FRESULT zf_close(
 		ZPACK_FIL* fp     /* [IN] Pointer to the file object */
 	);
-	FRESULT ZPack_lseek(
+	FRESULT zf_lseek(
 		ZPACK_FIL*    fp,  /* [IN] File object */
 		size_t ofs  /* [IN] File read/write pointer */
 	);
+	size_t zf_tell(
+		ZPACK_FIL* fp   /* [IN] File object */
+	);
+	FRESULT zf_size(
+		ZPACK_FIL* fp   /* [IN] File object */
+	);
+
 	size_t ZPack_GetFileSize(ZPACK_FIL*    fp);
 
 
@@ -141,7 +141,8 @@ extern "C" {
 	UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *dest, UINT *n);
 	UINT zPack_Compress_End(OUT_FILEINFO *dest);
 
-	DWORD CRC32(void *pStart, DWORD uSize);
+	DWORD GetCRC32(void *pStart, DWORD uSize);
+	DWORD GetCRC32Ex(DWORD InitValue, void *pStart, DWORD uSize);
 
 #if defined (__cplusplus)
 }

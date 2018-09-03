@@ -71,9 +71,20 @@ static const DWORD crc32c_table[256] = {
 };
 DWORD GetCRC32(void *pStart, DWORD uSize)
 {
-	DWORD uCRCValue;
+	DWORD uCRCValue = INIT;
 	BYTE *pData;
-	uCRCValue = INIT;
+	pData = pStart;
+	while (uSize--)
+	{
+		uCRCValue = crc32c_table[(uCRCValue ^ *pData++) & 0xFFL] ^ (uCRCValue >> 8);
+	}
+	return uCRCValue ^ XOROT;
+}
+
+DWORD GetCRC32Ex(DWORD InitValue,void *pStart, DWORD uSize)
+{
+	DWORD uCRCValue = InitValue;
+	BYTE *pData;
 	pData = pStart;
 	while (uSize--)
 	{
