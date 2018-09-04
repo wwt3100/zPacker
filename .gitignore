@@ -7,6 +7,8 @@
 *.sln.docstates
 *.vs/
 *.DS_Store
+*.img
+*.ima
 
 # Build results
 [Dd]ebug/

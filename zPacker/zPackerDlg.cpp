@@ -468,9 +468,10 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//Êó±êÓÒ¼üµ¯³ö²Ëµ¥
 
 void CzPackerDlg::OnBnClickedBtnCompress()
 {
-
-
-
+	UINT i = zPack_Init();
+	CString str;
+	str.Format(_T("%d"), i);
+	MessageBox(str);
 }
 
 void CzPackerDlg::OnBnClickedBtnOpen0()

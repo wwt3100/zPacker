@@ -48,11 +48,40 @@ size_t zPack_GetSize_compressed(const char *source)
 }
 
 static ZPACKFILEHEADER zfhead = { 0 };
+static FATFS fs = { 0 };
+UINT zPack_Init(void)
+{
+	FILE *fpImg;
+	f_mount(0, "0:", 1);
+	errno_t err = fopen_s(&fpImg, "Sim.img", "rb+"); //open file for read/write  
+	switch(err)
+	{
+	case 0:
+		break;
+	case 2:
+		fopen_s(&fpImg, "Sim.img", "wb");
+		fseek(fpImg, 128 * 1024 * 1024 + 1, 0);
+		fputc(EOF, fpImg);
+		break;
+	default:
+		return err;
+	}
+	fclose(fpImg);
+	UINT res = f_mount(&fs, "0:", 1);
+	BYTE work[FF_MAX_SS];
+	if (res == FR_NO_FILESYSTEM)
+	{
+		res = f_mkfs("0:", FM_FAT32, 0, work, sizeof(work));
+		res += f_mount(&fs, "0:", 1);
+	}
+		
+	return res;
+}
 UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 {
 	if (out->pFil == 0)
 	{
-		if (zf_open(out->pFil, out->FilePath, FA_CREATE_ALWAYS| FA_WRITE) != FR_OK)
+		if (f_open(out->pFil, out->FilePath, FA_CREATE_ALWAYS| FA_WRITE) != FR_OK)
 		{
 			return -1;
 		}
@@ -64,7 +93,7 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		//zfhead.zfType = 0x5A50414B;
 		zfhead.zfType = 0x4B41505A;
 		zfhead.zfBlockSize = FILE_BLOCK / 1024;
-		zf_lseek(out->pFil, sizeof(ZPACKFILEHEADER));
+		f_lseek(out->pFil, sizeof(ZPACKFILEHEADER));
 	}
 	if (in->pFil != 0)
 	{
@@ -73,32 +102,24 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		UINT filenamelen = strlen(in->FileName);
 		zihead.frFileNameLength = filenamelen;
 		filenamelen = (16 * (filenamelen + 15) / 16);
-		UINT nextfile = zf_tell(in->pFil) + 4;
-		zf_lseek(out->pFil, sizeof(ZPACKINFOHEADER)+ filenamelen);
-		size_t buffsize = zf_size(in->pFil);
+		UINT nextfile = f_tell(in->pFil) + 4;
+		f_lseek(out->pFil, sizeof(ZPACKINFOHEADER)+ filenamelen);
+		size_t buffsize = f_size(in->pFil);
 		size_t blocksize = buffsize > FILE_BLOCK ? FILE_BLOCK : buffsize;
 		BYTE *inbuf = zf_malloc(blocksize);
-		BYTE *outbuf = zf_malloc(blocksize + 10);
+		BYTE *outbuf = zf_malloc(blocksize + 400);
 		UINT uncomp_crc = -1;
 		UINT outsize = 0;
-		for (UINT i = 0; i < (buffsize / FILE_BLOCK + (buffsize % FILE_BLOCK == 0) ? 0 : 1); i++)
+		for (UINT i = 0;; i++)
 		{
-			if (i < buffsize / FILE_BLOCK || buffsize % FILE_BLOCK == 0)
-			{
-				blocksize = FILE_BLOCK;
-			}
-			else
-			{
-				blocksize = buffsize % FILE_BLOCK;
-			}
 			BYTE fh;
 			UINT br;
 			qlz_state_compress sd = { 0 };
-			zf_read(in->pFil, inbuf, blocksize, &br);
-			uncomp_crc = GetCRC32Ex(uncomp_crc, inbuf, blocksize);
-			memset(outbuf, 0, blocksize + 10);
-			outsize = outsize + qlz_compress(inbuf, outbuf + 1, blocksize, &sd) + 1;
-			if (i == (buffsize / FILE_BLOCK + (buffsize % FILE_BLOCK == 0) ? 0 : 1) - 1)	//last block
+			f_read(in->pFil, inbuf, FILE_BLOCK, &br);
+			uncomp_crc = GetCRC32Ex(uncomp_crc, inbuf, br);
+			memset(outbuf, 0, br + 400);
+			outsize = outsize + qlz_compress(inbuf, outbuf + 1, br, &sd) + 1;
+			if (br < FILE_BLOCK || f_eof(in->pFil) != 0)	//last block
 			{
 				*outbuf = 0xFF;
 			}
@@ -108,18 +129,24 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 			}
 			if (out->Key != 0)
 			{
-				for (UINT c = 0; c < c / 16; c++)
+				for (UINT c = 0; c < c / 16; c++)	//最坏情况是有15byte未加密,但节约存储空间
 				{
 					sm4_context ctx;
-					sm4_setkey_enc(&ctx, out->KeyHash + c % 2 ? 0 : 16);
+					sm4_setkey_enc(&ctx, (out->KeyHash + ((c % 2) ? 16 : 0)));
 					sm4_crypt_ecb(&ctx, 1, 16, outbuf + 16 * c, outbuf + 16 * c);
 				}
 			}
+
+			if (br < FILE_BLOCK || f_eof(in->pFil) != 0)	//last block exit
+			{
+				break;
+			}
 		}
 	}
+	return 0;
 }
 UINT zPack_Compress_End(OUT_FILEINFO *out)
 {
-
+	return 0;
 }
 
