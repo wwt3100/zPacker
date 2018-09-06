@@ -12,10 +12,6 @@
 
 #define FILE_BLOCK 10*1024
 
-FRESULT zf_open(ZPACK_FIL * fp, const CHAR * path, BYTE mode)
-{
-	return FR_OK;
-}
 static void *zf_malloc(size_t size)
 {
 	return malloc(size);
@@ -81,7 +77,7 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 {
 	if (out->pFil == 0)
 	{
-		if (zf_open(out->pFil, out->FilePath, FA_CREATE_ALWAYS| FA_WRITE) != FR_OK)
+		if (zf_open(&(out->pFil), out->FilePath, FA_CREATE_ALWAYS| FA_WRITE |FA_READ) != FR_OK)
 		{
 			return -1;
 		}
@@ -90,7 +86,7 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 			sm3(out->Key, strnlen_s(out->Key, 512), out->KeyHash);
 		}
 		//memset(&zfhead, 0, sizeof(ZPACKFILEHEADER));
-		//zfhead.zfType = 0x5A50414B;
+		//zfhead.zfType = 0x5A50414B;	ZPAK
 		//zfhead.zfType = 0x4B41505A;
 		//zfhead.zfBlockSize = FILE_BLOCK / 1024;
 		zf_lseek(out->pFil, sizeof(ZPACKFILEHEADER));
@@ -100,12 +96,13 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		ZPACKINFOHEADER zihead = { 0 };
 		out->zfFileNumber += 1;
 		UINT filenamelen = strlen(in->FileName);
-		zihead.Signage = 0x4B41505A;
+		zihead.Signage = 0x214C465A;
 		zihead.frFileNameLength = filenamelen;
-		//filenamelen = (16 * (filenamelen + 15) / 16);
-		UINT thisfile = f_tell(in->pFil);
-		zf_lseek(out->pFil, sizeof(ZPACKINFOHEADER)+ filenamelen);
-		size_t buffsize = f_size(in->pFil);
+		filenamelen = (16 * ((filenamelen + 15) / 16));
+		UINT thisfile = zf_tell(out->pFil);
+		zf_lseek(out->pFil, thisfile + sizeof(ZPACKINFOHEADER) + filenamelen);
+		UINT thisfile2 = zf_tell(out->pFil);		//for test
+		size_t buffsize = zf_size(in->pFil);
 		size_t blocksize = buffsize > FILE_BLOCK ? FILE_BLOCK : buffsize;
 		BYTE *inbuf = zf_malloc(blocksize);
 		BYTE *outbuf = zf_malloc(blocksize + 400);
@@ -113,14 +110,13 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		UINT outsize = 0;
 		for (UINT i = 0;; i++)		//文件分块
 		{
-			BYTE fh;
 			UINT br,bw;
 			UINT c = 0;
 			qlz_state_compress sd = { 0 };
 			zf_read(in->pFil, inbuf, FILE_BLOCK, &br);
 			uncomp_crc = GetCRC32Ex(uncomp_crc, inbuf, br);
 			memset(outbuf, 0, br + 400);
-			outsize = outsize + qlz_compress(inbuf, outbuf + 1, br, &sd) + 1;
+			outsize = qlz_compress(inbuf, outbuf + 1, br, &sd) + 1;
 			if (br < FILE_BLOCK || zf_eof(in->pFil) != 0)	//last block
 			{
 				*outbuf = 0xFF;
@@ -138,7 +134,7 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 					sm4_crypt_ecb(&ctx, 1, 16, outbuf + 16 * c, outbuf + 16 * c);
 				}
 			}
-			zf_write(out->pFil, outbuf, (c == 0) ? br : (c * 16), &bw);		//根据实际长度选择写入
+			zf_write(out->pFil, outbuf, (c == 0) ? outsize : (c * 16), &bw);		//根据实际长度选择写入
 			if (br < FILE_BLOCK || zf_eof(in->pFil) != 0)	//last block exit
 			{
 				break;
@@ -147,17 +143,28 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		zihead.frUncompressedCRC = uncomp_crc;
 		zihead.NextFileOffset = zf_tell(out->pFil);
 		zihead.FileType = in->Type;
-		for (UINT c = 0; c < (filenamelen + 15) / 16; c++)	//加密文件名
+		UINT c = 0;
+		if (out->Key != 0)
 		{
-			sm4_context ctx;
-			sm4_setkey_enc(&ctx, (out->KeyHash + ((c % 2) ? 0 : 16)));
-			sm4_crypt_ecb(&ctx, 1, 16, in->FileName + 16 * c, in->FileName + 16 * c);
+			for (; c < (filenamelen + 15) / 16; c++)	//加密文件名
+			{
+				sm4_context ctx;
+				sm4_setkey_enc(&ctx, (out->KeyHash + ((c % 2) ? 0 : 16)));
+				sm4_crypt_ecb(&ctx, 1, 16, in->FileName + 16 * c, in->FileName + 16 * c);
+			}
 		}
 		zf_lseek(out->pFil, thisfile);
 		UINT wb;
 		zf_write(out->pFil, &zihead, sizeof(ZPACKINFOHEADER), &wb);
-		zf_write(out->pFil, in->FileName, 16 * ((filenamelen + 15) / 16), &wb);
+		zf_write(out->pFil, in->FileName, filenamelen, &wb);
+		//zf_write(out->pFil, in->FileName, c == 0 ? zihead.frFileNameLength : c * 16, &wb);
 		zf_lseek(out->pFil, EOF);	//move pointer to the end of file
+		//zf_sync(out->pFil);
+		//if(0) //test block
+		//{	
+		//	zf_close(out->pFil);
+		//	exit();
+		//}
 		zf_free(inbuf);
 		zf_free(outbuf);
 	}
@@ -170,7 +177,7 @@ UINT zPack_Compress_End(OUT_FILEINFO *out)
 		UINT wb;
 		ZPACKFILEHEADER zfhead = { 0 };
 		BYTE *file;
-		zfhead.zfType = 0x4B41505A;
+		zfhead.zfType = 0x214B505A;
 		zfhead.zfFileNumber = out->zfFileNumber;
 		zfhead.zfBlockSize = FILE_BLOCK / 1024;
 		zf_lseek(out->pFil, 0);
@@ -182,6 +189,7 @@ UINT zPack_Compress_End(OUT_FILEINFO *out)
 		zf_lseek(out->pFil, 4);
 		zf_write(out->pFil, &zfhead.zfCRC32, 4, &wb);
 		zf_close(out->pFil);
+		zf_free(file);
 		return 0;
 	}
 	else

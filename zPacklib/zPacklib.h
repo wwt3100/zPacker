@@ -1,5 +1,6 @@
 #pragma once
 #include <stdio.h>
+#include <string.h>
 #include <malloc.h>
 #include"lib_sm/sm3.h"
 #include"lib_sm/sm4.h"
@@ -22,6 +23,7 @@ typedef unsigned short      WORD;
 typedef int                 INT;
 typedef unsigned int        UINT;
 typedef unsigned int        *PUINT;
+//typedef unsigned long		size_t;
 
 typedef enum {
 	FR_OK = 0,				/* (0) Succeeded */
@@ -58,7 +60,7 @@ typedef enum {
 
 typedef struct tagZPACKFILEHEADER
 {
-	DWORD zfType;	//0x5A50414B
+	DWORD zfType;	//0x214B505A; ZPK!
 	DWORD zfCRC32;		//文件CRC校验
 	WORD zfFileNumber;	//含有文件数
 	WORD zfFileFlag;		//文件信息 bit  | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
@@ -67,7 +69,7 @@ typedef struct tagZPACKFILEHEADER
 } ZPACKFILEHEADER;
 
 typedef struct tagZPACKFILERECORD{
-	DWORD		Signage;	//0x5A50414B
+	DWORD		Signage;	//0x214C465A; ZFL!
 	DWORD		NextFileOffset;	//如果指向EOF则代表最后一个文件
 	DWORD		frUncompressedCRC;
 	WORD		frFileNameLength;
@@ -105,7 +107,7 @@ extern "C" {
 #endif
 
 	FRESULT zf_open(
-		ZPACK_FIL* fp,           /* [OUT] Pointer to the file object structure */
+		ZPACK_FIL** fp,           /* [OUT] Pointer to the file object structure */
 		const CHAR* path, /* [IN] File name */
 		BYTE mode          /* [IN] Mode flags */
 	);
@@ -121,26 +123,20 @@ extern "C" {
 		UINT btw,         /* [IN] Number of bytes to write */
 		UINT* bw          /* [OUT] Pointer to the variable to return number of bytes written */
 	);
-	FRESULT zf_close(
-		ZPACK_FIL* fp     /* [IN] Pointer to the file object */
-	);
-	FRESULT zf_lseek(
-		ZPACK_FIL*    fp,  /* [IN] File object */
-		size_t ofs  /* [IN] File read/write pointer */
-	);
-	size_t zf_tell(
-		ZPACK_FIL* fp   /* [IN] File object */
-	);
+
+#define zf_close(n)		fclose(n)
+#define zf_lseek(n,x)	fseek(n,x,SEEK_SET)
+#define zf_tell(n)		ftell(n)
+
 	size_t zf_size(
 		ZPACK_FIL* fp   /* [IN] File object */
 	);
 
 	/*The f_eof function returns a non-zero value if the read/write pointer has reached end of the file;
 	otherwise it returns a zero.*/
-	int zf_eof(
-		ZPACK_FIL* fp   /* [IN] File object */
-	);
+#define zf_eof(n) feof(n)
 
+#define zf_sync(n)  fflush(n)
 
 	size_t zPack_compress(const void *source, char *destination, size_t size);
 	size_t zPack_Decompress(const char *source, void *destination);

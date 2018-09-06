@@ -7,7 +7,7 @@
 #include "zPackerDlg.h"
 #include "ConfigDlg.h"
 #include "afxdialogex.h"
-
+#include<atlconv.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -418,7 +418,7 @@ void CzPackerDlg::OnBnClickedBtnOpenFile()
 		size_t rdsize = zPack_compress(f_buf, (LPSTR)f_buf2, (size_t)testFile.GetLength());
 
 		size_t csize = zPack_GetSize_compressed((LPCSTR)f_buf2);
-		size_t dsize = zPcak_GetSize_decompressed((LPCSTR)f_buf2);
+		size_t dsize = zPack_GetSize_decompressed((LPCSTR)f_buf2);
 
 		CString str;
 		str.Format(_T("%d,%d,%d"), rdsize, csize, dsize);
@@ -465,15 +465,6 @@ void CzPackerDlg::OnRButtonUp(UINT nFlags, CPoint point)	//鼠标右键弹出菜单
 	CDialogEx::OnRButtonUp(nFlags, point);
 }
 
-
-void CzPackerDlg::OnBnClickedBtnCompress()
-{
-	UINT i = zPack_Init();
-	CString str;
-	str.Format(_T("%d"), i);
-	MessageBox(str);
-}
-
 void CzPackerDlg::OnBnClickedBtnOpen0()
 {
 	CFolderPickerDialog fd(NULL, 0, this, 0);
@@ -511,9 +502,6 @@ void CzPackerDlg::OnBnClickedBtnOpen1()
 
 	Filename = openDlg.GetPathName();
 	SetDlgItemText(IDC_EDIT_INPUT + 1, Filename.GetString());
-
-
-
 }
 
 void CzPackerDlg::OnPackHmi()
@@ -694,5 +682,28 @@ void CzPackerDlg::OnFileOpenjson()
 	cJSON_InitHooks(&cjh);
 }
 
+void CzPackerDlg::OnBnClickedBtnCompress()
+{
+	USES_CONVERSION;
+	IN_FILEINFO infile = { 0 };
+	OUT_FILEINFO outfile = { 0 };
+	strcpy_s(outfile.FilePath,255, "out.zp");
+	for (UINT i = 0; i < 3; i++)
+	{
+		if (m_BlockSel[i])
+		{
+			CString path;
+			GetDlgItemText(IDC_EDIT_INPUT + i, path);
+			int nPos = path.ReverseFind('\\'); // 文件路径，以'\'斜杠分隔的路径  
+			CString csFileFullName;
+			csFileFullName = path.Right(path.GetLength() - nPos - 1); // 获取文件全名，包括文件名和扩展名  
+			fopen_s(&infile.pFil, T2A(path), "rb");
+			strcpy_s(infile.FileName, 255, T2A(csFileFullName));
+			UINT n;
+			zPack_Compress_File(&infile, &outfile, &n);
+			zPack_Compress_End(&outfile);
+		}
+	}
+}
 
 

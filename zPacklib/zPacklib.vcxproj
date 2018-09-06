@@ -158,6 +158,7 @@
     <ClCompile Include="lib_qlz\quicklz.c" />
     <ClCompile Include="lib_sm\sm3.c" />
     <ClCompile Include="lib_sm\sm4.c" />
+    <ClCompile Include="zfatfs.c" />
     <ClCompile Include="zPacklib.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

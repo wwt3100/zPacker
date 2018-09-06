@@ -9,6 +9,7 @@
 *.DS_Store
 *.img
 *.ima
+*.zp
 
 # Build results
 [Dd]ebug/
