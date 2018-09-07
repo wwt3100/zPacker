@@ -6,6 +6,7 @@
 #include "zPacker.h"
 #include "zPackerDlg.h"
 #include "ConfigDlg.h"
+#include "CProcessDlg.h"
 #include "afxdialogex.h"
 #include<atlconv.h>
 #ifdef _DEBUG
@@ -704,6 +705,10 @@ void CzPackerDlg::OnBnClickedBtnCompress()
 			zPack_Compress_End(&outfile);
 		}
 	}
+	//HANDLE  m_ThreadProcessPack = CreateThread(0, 0, ThreadProcessPack, 0, 0, 0); //创建线程 
+	CProcessDlg ProcessDlg;
+	ProcessDlg.DoModal();
 }
+
 
 

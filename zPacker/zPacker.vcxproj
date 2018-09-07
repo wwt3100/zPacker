@@ -105,6 +105,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfigDlg.h" />
+    <ClInclude Include="CProcessDlg.h" />
     <ClInclude Include="CRegDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -115,6 +116,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConfigDlg.cpp" />
+    <ClCompile Include="CProcessDlg.cpp" />
     <ClCompile Include="CRegDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

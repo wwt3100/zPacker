@@ -48,6 +48,7 @@
 #endif
 
 #include "../cJson/cJSON.h"
+#include <afxcontrolbars.h>
 #ifdef _DEBUG
 #pragma comment(lib, "../Debug/cJson.lib")
 #else

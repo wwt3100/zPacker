@@ -80,4 +80,6 @@ public:
 	afx_msg void OnBnClickedSelLock();
 	afx_msg void OnFileOpenjson();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+
+
 };
