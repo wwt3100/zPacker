@@ -685,6 +685,7 @@ void CzPackerDlg::OnFileOpenjson()
 
 void CzPackerDlg::OnBnClickedBtnCompress()
 {
+	AfxGetMainWnd()->m_hWnd;
 	USES_CONVERSION;
 	IN_FILEINFO infile = { 0 };
 	OUT_FILEINFO outfile = { 0 };
