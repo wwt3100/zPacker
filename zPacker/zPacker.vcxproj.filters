@@ -45,6 +45,9 @@
     <ClInclude Include="CProcessDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CPasswordDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="zPacker.cpp">
@@ -63,6 +66,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CProcessDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPasswordDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

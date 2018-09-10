@@ -58,6 +58,7 @@ public:
 	LPBYTE PackSel;
 	BOOL m_Lock;
 	BOOL m_BlockSel[8];
+	CString Password;
 
 	CEdit *m_OpenFilePath;
 
@@ -82,4 +83,6 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 
 
+	afx_msg void OnFileConfig();
+	afx_msg void OnFileDecompress();
 };

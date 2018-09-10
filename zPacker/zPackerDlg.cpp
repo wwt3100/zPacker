@@ -7,8 +7,10 @@
 #include "zPackerDlg.h"
 #include "ConfigDlg.h"
 #include "CProcessDlg.h"
+#include "CPasswordDlg.h"
 #include "afxdialogex.h"
 #include<atlconv.h>
+#include"../zPacklib/zPacklib.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -108,6 +110,8 @@ BEGIN_MESSAGE_MAP(CzPackerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SEL_LOCK, &CzPackerDlg::OnBnClickedSelLock)
 	ON_COMMAND(ID_FILE_OPENJSON, &CzPackerDlg::OnFileOpenjson)
 	ON_WM_TIMER()
+	ON_COMMAND(ID_FILE_CONFIG, &CzPackerDlg::OnFileConfig)
+	ON_COMMAND(ID_FILE_DECOMPRESS, &CzPackerDlg::OnFileDecompress)
 END_MESSAGE_MAP()
 
 
@@ -685,31 +689,154 @@ void CzPackerDlg::OnFileOpenjson()
 
 void CzPackerDlg::OnBnClickedBtnCompress()
 {
-	AfxGetMainWnd()->m_hWnd;
-	USES_CONVERSION;
-	IN_FILEINFO infile = { 0 };
-	OUT_FILEINFO outfile = { 0 };
-	strcpy_s(outfile.FilePath,255, "out.zp");
-	for (UINT i = 0; i < 3; i++)
+	//单文件示例
+	//USES_CONVERSION;
+	//IN_FILEINFO infile = { 0 };
+	//OUT_FILEINFO outfile = { 0 };
+	//strcpy_s(outfile.FilePath,255, "out.zp");
+	//for (UINT i = 0; i < 3; i++)
+	//{
+	//	if (m_BlockSel[i])
+	//	{
+	//		CString path;
+	//		GetDlgItemText(IDC_EDIT_INPUT + i, path);
+	//		int nPos = path.ReverseFind('\\'); // 文件路径，以'\'斜杠分隔的路径  
+	//		CString csFileFullName;
+	//		csFileFullName = path.Right(path.GetLength() - nPos - 1); // 获取文件全名，包括文件名和扩展名  
+	//		fopen_s(&infile.pFil, T2A(path), "rb");
+	//		strcpy_s(infile.FileName, 255, T2A(csFileFullName));
+	//		UINT n;
+	//		zPack_Compress_File(&infile, &outfile, &n);
+	//		zPack_Compress_End(&outfile);
+	//	}
+	//}
+	CProcessDlg ProcessDlg;
+	CWinApp* pApp = AfxGetApp();
+	ProcessDlg.filearray.Add(pApp->GetProfileString(_T("Config"), _T("Key"), _T("")));	//第一个参数是key
+	for (int i = 0; i < 3; i++)
 	{
-		if (m_BlockSel[i])
+		if (m_BlockSel[i] == TRUE)
 		{
 			CString path;
-			GetDlgItemText(IDC_EDIT_INPUT + i, path);
-			int nPos = path.ReverseFind('\\'); // 文件路径，以'\'斜杠分隔的路径  
-			CString csFileFullName;
-			csFileFullName = path.Right(path.GetLength() - nPos - 1); // 获取文件全名，包括文件名和扩展名  
-			fopen_s(&infile.pFil, T2A(path), "rb");
-			strcpy_s(infile.FileName, 255, T2A(csFileFullName));
-			UINT n;
-			zPack_Compress_File(&infile, &outfile, &n);
-			zPack_Compress_End(&outfile);
+			if (i == 0)		//文件夹
+			{
+				GetDlgItemText(IDC_EDIT_INPUT, path);
+				if (path == _T(""))
+					continue;
+				CFileFind find;
+				BOOL IsFind = find.FindFile(path + _T("/*.*"));
+
+				while (IsFind)
+				{
+					IsFind = find.FindNextFile();
+					if (find.IsDots())
+					{
+						continue;
+					}
+					else
+					{
+						ProcessDlg.filearray.Add(_T("+") + path + _T("\\") + find.GetFileName());
+					}
+				}
+			}
+			else	//文件
+			{
+				GetDlgItemText(IDC_EDIT_INPUT + i, path);
+				if (path == _T(""))
+					continue;
+				ProcessDlg.filearray.Add(path);
+			}
 		}
 	}
-	//HANDLE  m_ThreadProcessPack = CreateThread(0, 0, ThreadProcessPack, 0, 0, 0); //创建线程 
-	CProcessDlg ProcessDlg;
+	ProcessDlg.PackDepack = TRUE;	//压缩模式
 	ProcessDlg.DoModal();
 }
 
+void CzPackerDlg::OnFileConfig()
+{
+	ConfigDlg cdlg;
+	cdlg.DoModal();
+}
 
 
+void CzPackerDlg::OnFileDecompress()
+{
+	CString Filename;
+	CFileDialog openDlg(TRUE, _T("ZPack File(*.zp;*.zpk)|*.zp;*.zpk|All File(*.*)|*.*"), NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, _T("ZPack File(*.zp;*.zpk)|*.zp;*.zpk|All File(*.*)|*.*||"), this);
+	INT_PTR result = openDlg.DoModal();
+	if (result != IDOK)
+		return;
+	ZPACK_FIL *pFil;
+	USES_CONVERSION;
+	fopen_s(&pFil, T2A(openDlg.GetPathName()), "rb+");
+	ZPACKFILEHEADER zphead;
+	UINT rb;
+	BYTE *file;
+	file =(BYTE*) malloc(zf_size(pFil)+1);	//对于PC可以直接读取全部文件
+	//fread_s(&file, zf_size(pFil), zf_size(pFil), 1, pFil);
+	zf_read(pFil, file, zf_size(pFil), &rb);
+	CString err;
+	err.Format(_T("%d"), ferror(pFil));
+	MessageBox(err);
+	memcpy_s(&zphead, sizeof(ZPACKFILEHEADER), file, sizeof(ZPACKFILEHEADER));
+	if (zphead.zfType != 0x214B505A)
+	{
+		MessageBox(_T("NOT A ZPack File!!"), 0, MB_ICONHAND);
+		return;
+	}
+	if (zphead.zfCRC32 != GetCRC32(file + 8, zf_size(pFil) - 8))
+	{
+		MessageBox(_T("ZPack File corrupted!!"), 0, MB_ICONHAND);
+		return;
+	}
+	fclose(pFil);
+	free(file);
+	CProcessDlg processDlg;
+
+	if ((zphead.zfFileFlag & 0xC000) == 0xC000)
+	{
+		CPasswordDlg pwDlg;
+		INT_PTR nResponse = pwDlg.DoModal();
+		if (nResponse == IDOK)
+		{
+			processDlg.filearray.Add(Password);
+		}
+		else if(nResponse == IDCANCEL)
+		{ 
+			MessageBox(_T("This File NEED a Password!! Abort!!"), 0, MB_ICONHAND);
+			return;
+		}
+	}
+	processDlg.filearray.Add(openDlg.GetPathName());
+
+	CString m_strFileOut = _T("");
+	TCHAR servPath[MAX_PATH];//用来存放文件夹路径  
+	BROWSEINFO bi;
+	LPITEMIDLIST pidl;
+	bi.hwndOwner = this->m_hWnd;
+	bi.pidlRoot = NULL;
+	bi.pszDisplayName = servPath;
+	bi.lpszTitle = _T("选择保存路径");
+	bi.ulFlags = BIF_RETURNONLYFSDIRS;
+	bi.lpfn = NULL;
+	bi.lParam = NULL;
+	bi.iImage = NULL;
+	if ((pidl = SHBrowseForFolder(&bi)) != NULL)
+	{
+		if (SUCCEEDED(SHGetPathFromIDList(pidl, servPath))) //得到文件夹的全路径，不要的话，只得本文件夹名  
+		{
+			processDlg.filearray.Add(servPath);
+		}
+		else
+		{
+			MessageBox(_T("Save File Path Error!! Abort!!"), 0, MB_ICONHAND);
+			return;
+		}
+	}
+	else
+	{
+		return;
+	}
+	processDlg.PackDepack = FALSE;	//解压
+	processDlg.DoModal();
+}

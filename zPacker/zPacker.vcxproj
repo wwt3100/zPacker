@@ -105,6 +105,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConfigDlg.h" />
+    <ClInclude Include="CPasswordDlg.h" />
     <ClInclude Include="CProcessDlg.h" />
     <ClInclude Include="CRegDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -116,6 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConfigDlg.cpp" />
+    <ClCompile Include="CPasswordDlg.cpp" />
     <ClCompile Include="CProcessDlg.cpp" />
     <ClCompile Include="CRegDlg.cpp" />
     <ClCompile Include="stdafx.cpp">

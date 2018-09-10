@@ -83,7 +83,14 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 		}
 		if (out->Key != 0)
 		{
-			sm3(out->Key, strnlen_s(out->Key, 512), out->KeyHash);
+			if (strnlen_s(out->Key, 512) != 0)
+			{
+				sm3(out->Key, strnlen_s(out->Key, 512), out->KeyHash);
+			}
+			else
+			{
+				out->Key = 0;
+			}
 		}
 		//memset(&zfhead, 0, sizeof(ZPACKFILEHEADER));
 		//zfhead.zfType = 0x5A50414B;	ZPAK
@@ -127,7 +134,7 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 			}
 			if (out->Key != 0)
 			{
-				for (c = 0; c < (br + 15) / 16; c++)	//如果有余数多加密一次
+				for (c = 0; c < (outsize + 15) / 16; c++)	//如果有余数多加密一次
 				{
 					sm4_context ctx;
 					sm4_setkey_enc(&ctx, (out->KeyHash + ((c % 2) ? 16 : 0)));
@@ -153,18 +160,12 @@ UINT zPack_Compress_File(IN_FILEINFO *in, OUT_FILEINFO *out, UINT *n)
 				sm4_crypt_ecb(&ctx, 1, 16, in->FileName + 16 * c, in->FileName + 16 * c);
 			}
 		}
+		UINT f_end = ftell(out->pFil);
 		zf_lseek(out->pFil, thisfile);
 		UINT wb;
 		zf_write(out->pFil, &zihead, sizeof(ZPACKINFOHEADER), &wb);
 		zf_write(out->pFil, in->FileName, filenamelen, &wb);
-		//zf_write(out->pFil, in->FileName, c == 0 ? zihead.frFileNameLength : c * 16, &wb);
-		zf_lseek(out->pFil, EOF);	//move pointer to the end of file
-		//zf_sync(out->pFil);
-		//if(0) //test block
-		//{	
-		//	zf_close(out->pFil);
-		//	exit();
-		//}
+		zf_lseek(out->pFil, f_end);	//move pointer to the end of file
 		zf_free(inbuf);
 		zf_free(outbuf);
 	}
@@ -180,6 +181,10 @@ UINT zPack_Compress_End(OUT_FILEINFO *out)
 		zfhead.zfType = 0x214B505A;
 		zfhead.zfFileNumber = out->zfFileNumber;
 		zfhead.zfBlockSize = FILE_BLOCK / 1024;
+		if (out->Key != 0)
+		{
+			zfhead.zfFileFlag = 0xC000;
+		}
 		zf_lseek(out->pFil, 0);
 		zf_write(out->pFil, &zfhead, sizeof(ZPACKFILEHEADER), &wb);
 		zf_lseek(out->pFil, 0);

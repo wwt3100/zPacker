@@ -65,6 +65,7 @@ typedef struct tagZPACKFILEHEADER
 	WORD zfFileNumber;	//含有文件数
 	WORD zfFileFlag;		//文件信息 bit  | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 	                        //		        文件名加密|文件加密                                           |压缩等级(1/2/3)
+	DWORD zfBlockInfo[4];
 	DWORD zfBlockSize;	//单位kb
 } ZPACKFILEHEADER;
 
@@ -89,6 +90,7 @@ typedef struct tagOUTFILEINFO
 	CHAR	KeyHash[32];
 	CHAR	FilePath[255];
 	WORD	zfFileNumber;	//含有文件数
+	DWORD   zfBlockInfo[4];
 	ZPACK_FIL *pFil;
 }OUT_FILEINFO;
 
